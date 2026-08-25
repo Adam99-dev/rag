@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "dev": "npm-run-all --parallel dev:doc_worker dev:chat dev:user dev:status_worker dev:message_worker",
     "dev:doc_worker": "nodemon src/upload-server/workers/docWorker.js",
     "dev:chat": "nodemon src/chat-server/server.js",
     "dev:user": "nodemon src/user-server/server.js",
@@ -41,6 +42,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^20.19.43",
     "nodemon": "^3.1.14",
+    "npm-run-all": "^4.1.5",
     "tsx": "^4.23.12",
     "typescript": "^5.9.3"
   }

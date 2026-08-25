@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
+import { TypeAnimation } from "react-type-animation";
+import { Riple } from "react-loading-indicators";
 
 const Icon = {
   Logo: ({ className }) => (
@@ -63,9 +65,23 @@ const Icon = {
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth={2}
+        strokeWidth={5}
         d="M15 19l-7-7 7-7"
       />
+    </svg>
+  ),
+  Danger: ({ className }) => (
+    <img className={className} src="../icons/danger_icon.png" alt="" />
+  ),
+  ChevronDown: ({ className }) => (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
     </svg>
   ),
 };
@@ -124,6 +140,11 @@ const App = () => {
   const [mobileView, setMobileView] = useState("docs");
   const [isMobile, setIsMobile] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [docToDelete, setDocToDelete] = useState(null);
+  // Per-message open state for Sources
+  const [openSources, setOpenSources] = useState({});
+
   const fileRef = useRef(null);
   const endRef = useRef(null);
 
@@ -165,6 +186,7 @@ const App = () => {
     setChat({});
     setMobileView("docs");
     setProfileMenuOpen(false);
+    setOpenSources({});
   };
 
   const upload = (files) => {
@@ -178,6 +200,7 @@ const App = () => {
       progress: 0,
       pages: Math.floor(Math.random() * 30) + 5,
       file: f,
+      isDeleting: false,
     }));
     setDocs((prev) => [...prev, ...newDocs]);
     newDocs.forEach((doc) => {
@@ -185,7 +208,7 @@ const App = () => {
         { text: "Thinking...", progress: 10 },
         { text: "Analyzing content...", progress: 25 },
         { text: "Embedding vectors...", progress: 45 },
-        { text: "Clauding patterns...", progress: 65 },
+        { text: "Clustering patterns...", progress: 65 },
         { text: "Indexing document...", progress: 85 },
         { text: "Ready", progress: 100 },
       ];
@@ -221,6 +244,16 @@ const App = () => {
     });
   };
 
+  const handleDeleteDoc = (id) => {
+    setDocs((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, isDeleting: true } : d)),
+    );
+    setTimeout(() => {
+      delDoc(id);
+      setDocToDelete(null);
+    }, 600);
+  };
+
   const sendMsg = () => {
     if (!msg.trim() || !selected) return;
     const userMsg = {
@@ -245,20 +278,6 @@ const App = () => {
             { page: 7, text: "Methodology, page 7" },
           ],
         },
-        {
-          content: `Analyzing the retrieved context, "${currentMsg.substring(0, 40)}..." relates to core themes in the text.`,
-          citations: [
-            { page: 12, text: "Case studies, page 12" },
-            { page: 18, text: "Implementation, page 18" },
-          ],
-        },
-        {
-          content: `The document "${selected.name}" contains relevant information about your query.`,
-          citations: [
-            { page: 5, text: "Literature review, page 5" },
-            { page: 9, text: "Analysis results, page 9" },
-          ],
-        },
       ];
       const picked = responses[Math.floor(Math.random() * responses.length)];
       setChat((prev) => ({
@@ -269,7 +288,14 @@ const App = () => {
         ],
       }));
       setTyping(false);
-    }, 2000);
+    }, 10000);
+  };
+
+  const toggleSources = (msgId) => {
+    setOpenSources((prev) => ({
+      ...prev,
+      [msgId]: !prev[msgId],
+    }));
   };
 
   const filtered = docs.filter((d) =>
@@ -304,7 +330,9 @@ const App = () => {
                   key={m}
                   type="button"
                   onClick={() => setAuth({ ...auth, mode: m })}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${auth.mode === m ? "text-gray-800" : "text-gray-500"}`}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${
+                    auth.mode === m ? "text-gray-800" : "text-gray-500"
+                  }`}
                   style={
                     auth.mode === m
                       ? {
@@ -402,7 +430,9 @@ const App = () => {
 
       {(!isMobile || mobileView === "docs") && (
         <aside
-          className={`${isMobile ? "w-full" : "w-[280px] lg:w-[300px]"} flex-shrink-0 flex flex-col h-full p-3 gap-3`}
+          className={`${
+            isMobile ? "w-full" : "w-[280px] lg:w-[300px]"
+          } flex-shrink-0 flex flex-col h-full p-3 gap-3`}
         >
           <div
             className="p-3.5 cursor-pointer transition flex-shrink-0"
@@ -443,7 +473,9 @@ const App = () => {
             />
             <div className="text-center">
               <Icon.Upload
-                className={`w-10 h-10 mx-auto mb-2 text-blue-600 transition ${drag ? "scale-110" : ""}`}
+                className={`w-10 h-10 mx-auto mb-2 text-blue-600 transition ${
+                  drag ? "scale-110" : ""
+                }`}
               />
               <h3 className="font-semibold text-sm text-gray-800">
                 Upload Document
@@ -488,7 +520,11 @@ const App = () => {
                   return (
                     <div
                       key={doc.id}
-                      className={`p-3 transition ${isReady ? "cursor-pointer hover:-translate-y-0.5" : "cursor-not-allowed opacity-70"}`}
+                      className={`p-3 transition relative ${
+                        isReady
+                          ? "cursor-pointer hover:-translate-y-0.5"
+                          : "cursor-not-allowed opacity-70"
+                      }`}
                       style={{
                         ...theme.panel,
                         borderRadius: "14px",
@@ -497,15 +533,33 @@ const App = () => {
                       }}
                       onClick={isReady ? () => handleDocSelect(doc) : undefined}
                     >
-                      <div className="flex items-start gap-2.5">
-                        <Icon.File className="w-7 h-7 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
+                      <div className="relative flex items-start gap-3">
+                        {/* Delete (X) button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDocToDelete(doc);
+                            setShowDeleteConfirm(true);
+                          }}
+                          disabled={!isReady || doc.isDeleting}
+                          className={`absolute -top-1 -right-1 p-1 rounded-full transition z-10 ${
+                            isReady && !doc.isDeleting
+                              ? "hover:bg-red-100 text-gray-400 hover:text-red-500"
+                              : "text-gray-300"
+                          }`}
+                        >
+                          <Icon.Trash className="w-4 h-4 cursor-pointer" />
+                        </button>
+
+                        <div className="flex-shrink-0">
+                          <Icon.File className="w-12 h-12" />
+                        </div>
+
+                        <div className="flex-1 min-w-0 pr-4">
                           <p className="font-medium text-sm truncate text-gray-800">
                             {doc.name}
                           </p>
-                          <p className="text-[11px] text-gray-500 mt-0.5">
-                            {doc.size} · {doc.pages} pages
-                          </p>
+                          <p className="text-[11px] text-gray-500 mt-0.5"></p>
                           <div className="flex items-center justify-between mt-1.5">
                             {doc.status === "loading" ? (
                               <div className="flex items-center gap-1.5">
@@ -521,18 +575,20 @@ const App = () => {
                                 {doc.status}
                               </span>
                             )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                delDoc(doc.id);
-                              }}
-                              disabled={!isReady}
-                              className={`p-1 rounded-lg transition ${isReady ? "hover:bg-red-50 text-gray-400 hover:text-red-500" : "text-gray-300"}`}
-                            >
-                              <Icon.Trash className="w-3.5 h-3.5" />
-                            </button>
                           </div>
                         </div>
+
+                        {/* Deleting overlay */}
+                        {doc.isDeleting && (
+                          <div className="absolute inset-0 bg-white/50 backdrop-blur-sm rounded-[14px] flex items-center justify-center z-20">
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                              <span className="text-sm font-medium text-red-600">
+                                Deleting...
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -540,6 +596,54 @@ const App = () => {
               )}
             </div>
           </div>
+
+          {/* Delete Confirmation Modal */}
+          {showDeleteConfirm && docToDelete && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div
+                className="absolute inset-0 bg-black/50"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDocToDelete(null);
+                }}
+              />
+              <div className="relative bg-white rounded-xl shadow-xl p-6 w-96 max-w-md mx-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <Icon.Danger className="w-8 h-8" />
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Delete Document
+                  </h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  Are you sure you want to delete{" "}
+                  <span className="font-medium text-gray-900">
+                    "{docToDelete.name}"
+                  </span>
+                  ? This action cannot be undone.
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setDocToDelete(null);
+                    }}
+                    className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      handleDeleteDoc(docToDelete.id);
+                    }}
+                    className="cursor-pointer px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div
             className="flex-shrink-0 p-3 flex items-center justify-between gap-2 relative"
@@ -553,11 +657,13 @@ const App = () => {
                     DocuMind
                   </h1>
                   <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-900 text-white font-semibold">
-                    AI
+                    FREE
                   </span>
                 </div>
                 <p className="text-[11px] text-gray-500 truncate">
-                  {auth.user?.name || "Guest"}
+                  <span className="font-bold">
+                    {auth.user?.name || "Guest"}
+                  </span>
                 </p>
               </div>
             </div>
@@ -566,7 +672,7 @@ const App = () => {
               <button
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                 title="Profile"
-                className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-500 hover:text-blue-600 transition"
+                className="w-8 h-8 flex items-center justify-center rounded-full transition"
               >
                 <Icon.Profile className="w-8 h-8 cursor-pointer" />
               </button>
@@ -658,21 +764,6 @@ const App = () => {
                     AI Ready · Ask anything
                   </p>
                 </div>
-                <div
-                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 max-w-[200px]"
-                  style={{
-                    background: "linear-gradient(145deg, #f8f5f0, #ebe7e1)",
-                    borderRadius: "10px",
-                  }}
-                >
-                  <Icon.Database className="w-4 h-4 flex-shrink-0" />
-                  <span className="text-xs font-medium text-gray-700 truncate">
-                    {selected.name}
-                  </span>
-                  <span className="text-[11px] text-gray-500">
-                    · {selected.pages}p
-                  </span>
-                </div>
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3.5">
@@ -689,7 +780,9 @@ const App = () => {
                 {(chat[selected.id] || []).map((m) => (
                   <div
                     key={m.id}
-                    className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                    className={`flex ${
+                      m.role === "user" ? "justify-end" : "justify-start"
+                    }`}
                   >
                     <div
                       className={`max-w-[85%] sm:max-w-[75%] px-3.5 py-2.5 ${
@@ -707,41 +800,69 @@ const App = () => {
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">
                         {m.content}
                       </p>
+
                       {m.citations?.length > 0 && (
                         <div className="mt-2.5 pt-2.5 border-t border-gray-200/60">
-                          <p className="text-[10px] font-semibold mb-1 text-gray-500 uppercase tracking-wider">
-                            Sources
-                          </p>
-                          {m.citations.map((c, i) => (
-                            <div
-                              key={i}
-                              className="text-xs text-gray-500 flex items-start gap-1.5 mb-0.5"
-                            >
-                              <Icon.Database className="w-3 h-3 mt-0.5 flex-shrink-0 opacity-60" />
-                              <span>{c.text}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleSources(m.id)}
+                            className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-700 transition-colors"
+                          >
+                            <span>Sources</span>
+                            <Icon.ChevronDown
+                              className={`w-3 h-3 transition-transform duration-200 ${
+                                openSources[m.id] ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+
+                          {openSources[m.id] && (
+                            <div className="mt-1.5">
+                              {m.citations.map((c, i) => (
+                                <div
+                                  key={i}
+                                  className="text-xs text-gray-500 flex items-start gap-1.5 mb-0.5"
+                                >
+                                  <Icon.Database className="w-3 h-3 mt-0.5 flex-shrink-0 opacity-60" />
+                                  <span>{c.text}</span>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          )}
                         </div>
                       )}
                     </div>
                   </div>
                 ))}
                 {typing && (
-                  <div className="flex justify-start">
-                    <div
-                      className="bg-white/90 rounded-2xl rounded-bl-md px-4 py-3"
-                      style={{ boxShadow: "0 4px 18px rgba(0,0,0,0.07)" }}
-                    >
-                      <div className="flex gap-1.5">
-                        {[0, 1, 2].map((i) => (
-                          <div
-                            key={i}
-                            className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                            style={{ animationDelay: `${i * 150}ms` }}
-                          />
-                        ))}
-                      </div>
+                  <div className="flex items-center text-xs text-gray-600 animate-in fade-in duration-300">
+                    <div className="shrink-0 scale-45">
+                      <Riple
+                        color="#000000"
+                        size="small"
+                        text=""
+                        textColor=""
+                      />
                     </div>
+                    <TypeAnimation
+                      sequence={[
+                        "Searching...",
+                        1000,
+                        "Comparing...",
+                        1000,
+                        "Reranking...",
+                        1000,
+                      ]}
+                      wrapper="span"
+                      cursor={false}
+                      repeat={Infinity}
+                      style={{
+                        fontSize: "0.75rem",
+                        display: "inline-block",
+                        fontWeight: 500,
+                        lineHeight: 0,
+                      }}
+                    />
                   </div>
                 )}
                 <div ref={endRef} />
