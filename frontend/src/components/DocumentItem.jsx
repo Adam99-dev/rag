@@ -56,7 +56,7 @@ const DocumentItem = ({
                 </span>
               </div>
             ) : (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium capitalize">
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize ${doc.status === "failed" ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>
                 {doc.status}
               </span>
             )}

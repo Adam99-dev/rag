@@ -10,6 +10,7 @@ const ChatArea = ({
   setMobileView,
   chat,
   typing,
+  loading,
   openSources,
   toggleSources,
   msg,
@@ -43,7 +44,7 @@ const ChatArea = ({
           <MessageList
             messages={chat[selected.id] || []}
             selectedName={selected.name}
-            typing={typing}
+            typing={typing || loading}
             openSources={openSources}
             toggleSources={toggleSources}
           />

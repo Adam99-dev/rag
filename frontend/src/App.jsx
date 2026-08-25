@@ -5,8 +5,9 @@ import Sidebar from "./components/Sidebar";
 import ChatArea from "./components/ChatArea";
 import ToastContainer from "./components/ToastContainer";
 import { useAuth } from "./hooks/useAuth";
-import { userApi } from "./api/userApi";
-import { chatApi } from "./api/chatApi";
+import { authApi } from "./api/auth.api";
+import { documentApi } from "./api/document.api";
+import { chatApi } from "./api/chat.api";
 
 const statusDetails = (status) => {
   const value = String(status || "UPLOADING").toUpperCase();
@@ -52,7 +53,7 @@ const toMessage = (message) => ({
 });
 
 const App = () => {
-  const { loggedUser, setLoggedUser, isLoggedIn, setIsLoggedIn } = useAuth();
+  const { loggedUser, setLoggedUser, isLoggedIn, setIsLoggedIn, authLoading } = useAuth();
   const [auth, setAuth] = useState({
     mode: "login",
     form: { name: "", email: "", password: "" },
@@ -70,6 +71,9 @@ const App = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [docToDelete, setDocToDelete] = useState(null);
   const [openSources, setOpenSources] = useState({});
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [documentsVersion, setDocumentsVersion] = useState(0);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
   const [toasts, setToasts] = useState([]);
   const showToast = useCallback((message, type = "info", duration = 3500) =>
     setToasts((current) => [...current, { id: Date.now() + Math.random(), message, type, duration }]), []);
@@ -97,53 +101,53 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const restoreSession = async () => {
-      try {
-        const data = await userApi.me();
-        setLoggedUser(data.data.user);
-        setIsLoggedIn(true);
-      } catch {
-        // No active session is expected before a user signs in.
-      }
-    };
-    restoreSession();
-  }, [setIsLoggedIn, setLoggedUser]);
-
-  useEffect(() => {
     if (!isLoggedIn) return undefined;
 
+    let pollTimer;
     const fetchDocuments = async () => {
+      setDocumentsLoading(true);
       try {
-        const data = await userApi.documents();
+        const data = await documentApi.list();
         const nextDocuments = (data.documents || []).map(toDocument);
         setDocs(nextDocuments);
         setSelected((current) =>
           current
             ? nextDocuments.find((document) => document.id === current.id) ||
               null
-            : null,
+            : nextDocuments.find((document) => document.id === sessionStorage.getItem("selectedDocumentId")) || null,
         );
+        if (nextDocuments.some((document) => !["COMPLETED", "FAILED"].includes(document.backendStatus)))
+          pollTimer = window.setTimeout(fetchDocuments, 5000);
       } catch (error) {
         if (error.message !== "Authentication required. Please login.")
           showToast(error.message || "Unable to load documents", "error");
+      } finally {
+        setDocumentsLoading(false);
       }
     };
 
-    const initialFetch = window.setTimeout(fetchDocuments, 0);
-    const statusPoll = window.setInterval(fetchDocuments, 5000);
+    fetchDocuments();
     return () => {
-      window.clearTimeout(initialFetch);
-      window.clearInterval(statusPoll);
+      window.clearTimeout(pollTimer);
     };
-  }, [isLoggedIn, showToast]);
+  }, [isLoggedIn, documentsVersion, showToast]);
+
+  useEffect(() => {
+    if (!selected?.chatId || chat[selected.id]) return;
+    chatApi.get(selected.chatId)
+      .then((data) => setChat((current) => ({ ...current, [selected.id]: (data.chat.messages || []).map(toMessage) })))
+      .catch((error) => showToast(error.message || "Unable to load chat history", "error"));
+  }, [selected, chat, showToast]);
 
   const handleAuth = async (event) => {
     event.preventDefault();
+    if (authSubmitting) return;
+    setAuthSubmitting(true);
     try {
       const isLogin = auth.mode === "login";
       const data = await (isLogin
-        ? userApi.login({ email: auth.form.email, password: auth.form.password })
-        : userApi.signup(auth.form));
+        ? authApi.login({ email: auth.form.email, password: auth.form.password })
+        : authApi.signup(auth.form));
       const user = data.data.user;
       setLoggedUser(user);
       setIsLoggedIn(true);
@@ -155,12 +159,14 @@ const App = () => {
       );
     } catch (error) {
       showToast(error.message || "Authentication failed", "error");
+    } finally {
+      setAuthSubmitting(false);
     }
   };
 
   const logout = async () => {
     try {
-      await userApi.logout();
+      await authApi.logout();
       setAuth({
         mode: "login",
         form: { name: "", email: "", password: "" },
@@ -183,8 +189,9 @@ const App = () => {
     const formData = new FormData();
     formData.append("document", files[0]);
     try {
-      const data = await userApi.upload(formData);
+      const data = await documentApi.upload(formData);
       setDocs((current) => [toDocument(data.document), ...current]);
+      setDocumentsVersion((value) => value + 1);
       showToast(data.message || "Document uploaded successfully", "success");
     } catch (error) {
       showToast(error.message || "Unable to upload document", "error");
@@ -198,9 +205,12 @@ const App = () => {
       ),
     );
     try {
-      await userApi.deleteDocument(id);
+      await documentApi.remove(id);
       setDocs((current) => current.filter((document) => document.id !== id));
-      if (selected?.id === id) setSelected(null);
+      if (selected?.id === id) {
+        setSelected(null);
+        sessionStorage.removeItem("selectedDocumentId");
+      }
       setChat((current) => {
         const next = { ...current };
         delete next[id];
@@ -221,17 +231,8 @@ const App = () => {
 
   const handleDocSelect = async (document) => {
     setSelected(document);
+    sessionStorage.setItem("selectedDocumentId", document.id);
     if (isMobile) setMobileView("chat");
-    if (!document.chatId || chat[document.id]) return;
-    try {
-      const data = await userApi.chat(document.chatId);
-      setChat((current) => ({
-        ...current,
-        [document.id]: (data.chat.messages || []).map(toMessage),
-      }));
-    } catch (error) {
-      showToast(error.message || "Unable to load chat history", "error");
-    }
   };
 
   const sendMsg = async () => {
@@ -283,8 +284,9 @@ const App = () => {
     document.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  if (!isLoggedIn)
-    return <AuthForm auth={auth} setAuth={setAuth} handleAuth={handleAuth} />;
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500" style={{ background: theme.bg }}>Loading...</div>;
+
+  if (!isLoggedIn) return <><ToastContainer toasts={toasts} removeToast={removeToast} /><AuthForm auth={auth} setAuth={setAuth} handleAuth={handleAuth} authLoading={authSubmitting} /></>;
 
   return (
     <div
@@ -302,6 +304,7 @@ const App = () => {
           search={search}
           setSearch={setSearch}
           filteredDocs={filtered}
+          loading={documentsLoading}
           selected={selected}
           onSelect={handleDocSelect}
           showDeleteConfirm={showDeleteConfirm}
@@ -322,6 +325,7 @@ const App = () => {
           setMobileView={setMobileView}
           chat={chat}
           typing={typing}
+          loading={Boolean(selected?.chatId && !chat[selected.id])}
           openSources={openSources}
           toggleSources={toggleSources}
           msg={msg}

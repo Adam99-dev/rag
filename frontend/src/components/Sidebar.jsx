@@ -12,6 +12,7 @@ const Sidebar = ({
   search,
   setSearch,
   filteredDocs,
+  loading,
   selected,
   onSelect,
   showDeleteConfirm,
@@ -34,6 +35,7 @@ const Sidebar = ({
       <SearchBar search={search} setSearch={setSearch} />
       <DocumentList
         docs={filteredDocs}
+        loading={loading}
         selected={selected}
         onSelect={onSelect}
         onRequestDelete={(doc) => {

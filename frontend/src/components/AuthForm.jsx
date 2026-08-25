@@ -1,7 +1,7 @@
 import { theme } from "../theme";
 import { Icon } from "./Icons";
 
-const AuthForm = ({ auth, setAuth, handleAuth }) => {
+const AuthForm = ({ auth, setAuth, handleAuth, authLoading }) => {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4"
@@ -25,6 +25,7 @@ const AuthForm = ({ auth, setAuth, handleAuth }) => {
                 key={m}
                 type="button"
                 onClick={() => setAuth({ ...auth, mode: m })}
+                disabled={authLoading}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${
                   auth.mode === m ? "text-gray-800" : "text-gray-500"
                 }`}
@@ -104,10 +105,11 @@ const AuthForm = ({ auth, setAuth, handleAuth }) => {
             </div>
             <button
               type="submit"
-              className="w-full mt-1 py-3.5 text-white font-semibold text-sm rounded-2xl transition hover:-translate-y-0.5 cursor-pointer"
+              disabled={authLoading}
+              className="w-full mt-1 py-3.5 text-white font-semibold text-sm rounded-2xl transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
               style={theme.primary}
             >
-              {auth.mode === "login" ? "Login to DocuMind" : "Create Account"}
+              {authLoading ? "Please wait..." : auth.mode === "login" ? "Login to DocuMind" : "Create Account"}
             </button>
           </form>
         </div>

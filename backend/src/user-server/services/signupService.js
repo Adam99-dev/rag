@@ -26,12 +26,14 @@ export async function signup(name, email, password, res) {
 
     const token = generateToken(newUser.id, newUser.email);
 
-    const isProd = process.env.NODE_ENV === "production";
+    const isSecure = process.env.NODE_ENV === "production" || process.env.COOKIE_SECURE === "true";
     res.cookie("token", token, {
         httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? "none" : "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000
+        secure: isSecure,
+        sameSite: isSecure ? "none" : "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
+        ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
     });
 
     const { password: _, ...userWithoutPassword } = newUser;
