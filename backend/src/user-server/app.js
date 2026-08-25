@@ -12,6 +12,7 @@ app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/document", docRoutes);
+app.get("/health", (req, res) => res.json({ ok: true, server: "user" }));
 
 
 export default app;
