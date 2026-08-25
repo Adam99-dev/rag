@@ -12,7 +12,7 @@ app.get("/", (req, res) => {
   res.status(200).send("Message Worker is running");
 });
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.MESSAGE_SERVER_PORT || 3005;
 app.listen(PORT, () => {
   console.log(`Message Worker HTTP server running on port ${PORT}`);
 });

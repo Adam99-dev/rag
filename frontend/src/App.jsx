@@ -104,6 +104,7 @@ const App = () => {
     if (!isLoggedIn) return undefined;
 
     let pollTimer;
+    let active = true;
     const fetchDocuments = async () => {
       setDocumentsLoading(true);
       try {
@@ -116,7 +117,7 @@ const App = () => {
               null
             : nextDocuments.find((document) => document.id === sessionStorage.getItem("selectedDocumentId")) || null,
         );
-        if (nextDocuments.some((document) => !["COMPLETED", "FAILED"].includes(document.backendStatus)))
+        if (active && nextDocuments.some((document) => !["COMPLETED", "FAILED"].includes(document.backendStatus)))
           pollTimer = window.setTimeout(fetchDocuments, 5000);
       } catch (error) {
         if (error.message !== "Authentication required. Please login.")
@@ -128,6 +129,7 @@ const App = () => {
 
     fetchDocuments();
     return () => {
+      active = false;
       window.clearTimeout(pollTimer);
     };
   }, [isLoggedIn, documentsVersion, showToast]);

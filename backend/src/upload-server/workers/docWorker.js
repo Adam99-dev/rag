@@ -13,7 +13,7 @@ app.get("/", (req, res) => {
 });
 
 app.use(corsMiddleware);
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.UPLOAD_SERVER_PORT || process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Document Worker HTTP server running on port ${PORT}`);
 });
