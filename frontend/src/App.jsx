@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { theme } from "./theme";
 import AuthForm from "./components/AuthForm";
 import Sidebar from "./components/Sidebar";
 import ChatArea from "./components/ChatArea";
-import { useToast } from "./hooks/useToast";
+import ToastContainer from "./components/ToastContainer";
+import { useAuth } from "./hooks/useAuth";
 import { userApi } from "./api/userApi";
 import { chatApi } from "./api/chatApi";
 
@@ -51,11 +52,9 @@ const toMessage = (message) => ({
 });
 
 const App = () => {
-  const { showToast } = useToast();
+  const { loggedUser, setLoggedUser, isLoggedIn, setIsLoggedIn } = useAuth();
   const [auth, setAuth] = useState({
-    isAuth: false,
     mode: "login",
-    user: null,
     form: { name: "", email: "", password: "" },
   });
   const [docs, setDocs] = useState([]);
@@ -71,6 +70,25 @@ const App = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [docToDelete, setDocToDelete] = useState(null);
   const [openSources, setOpenSources] = useState({});
+  const [toasts, setToasts] = useState([]);
+  const showToast = useCallback((message, type = "info", duration = 3500) =>
+    setToasts((current) => [...current, { id: Date.now() + Math.random(), message, type, duration }]), []);
+  const removeToast = (id) => setToasts((current) => current.filter((toast) => toast.id !== id));
+
+  useEffect(() => {
+    const showError = (value) => showToast(value instanceof Error ? value.message : value || "Unexpected error", "error");
+    const onError = (event) => showError(event.error || event.message);
+    const onRejection = (event) => showError(event.reason);
+    const originalWarn = console.warn;
+    console.warn = (...args) => { showToast(args.join(" "), "warning"); originalWarn(...args); };
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+      console.warn = originalWarn;
+    };
+  }, [showToast]);
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
     onResize();
@@ -82,16 +100,17 @@ const App = () => {
     const restoreSession = async () => {
       try {
         const data = await userApi.me();
-        setAuth((current) => ({ ...current, isAuth: true, user: data.data.user }));
+        setLoggedUser(data.data.user);
+        setIsLoggedIn(true);
       } catch {
         // No active session is expected before a user signs in.
       }
     };
     restoreSession();
-  }, []);
+  }, [setIsLoggedIn, setLoggedUser]);
 
   useEffect(() => {
-    if (!auth.isAuth) return undefined;
+    if (!isLoggedIn) return undefined;
 
     const fetchDocuments = async () => {
       try {
@@ -116,7 +135,7 @@ const App = () => {
       window.clearTimeout(initialFetch);
       window.clearInterval(statusPoll);
     };
-  }, [auth.isAuth, showToast]);
+  }, [isLoggedIn, showToast]);
 
   const handleAuth = async (event) => {
     event.preventDefault();
@@ -126,7 +145,8 @@ const App = () => {
         ? userApi.login({ email: auth.form.email, password: auth.form.password })
         : userApi.signup(auth.form));
       const user = data.data.user;
-      setAuth((current) => ({ ...current, isAuth: true, user }));
+      setLoggedUser(user);
+      setIsLoggedIn(true);
       showToast(
         isLogin
           ? `Welcome back, ${user.name}!`
@@ -142,11 +162,11 @@ const App = () => {
     try {
       await userApi.logout();
       setAuth({
-        isAuth: false,
         mode: "login",
-        user: null,
         form: { name: "", email: "", password: "" },
       });
+      setLoggedUser(null);
+      setIsLoggedIn(false);
       setDocs([]);
       setSelected(null);
       setChat({});
@@ -263,7 +283,7 @@ const App = () => {
     document.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  if (!auth.isAuth)
+  if (!isLoggedIn)
     return <AuthForm auth={auth} setAuth={setAuth} handleAuth={handleAuth} />;
 
   return (
@@ -272,6 +292,7 @@ const App = () => {
       style={{ background: theme.bg, color: "#1f2937" }}
     >
       <style>{`* { scrollbar-width: none; -ms-overflow-style: none; } *::-webkit-scrollbar { display: none; }`}</style>
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       {(!isMobile || mobileView === "docs") && (
         <Sidebar
           isMobile={isMobile}
@@ -288,7 +309,7 @@ const App = () => {
           setShowDeleteConfirm={setShowDeleteConfirm}
           setDocToDelete={setDocToDelete}
           handleDeleteDoc={handleDeleteDoc}
-          user={auth.user}
+          user={loggedUser}
           profileMenuOpen={profileMenuOpen}
           setProfileMenuOpen={setProfileMenuOpen}
           logout={logout}

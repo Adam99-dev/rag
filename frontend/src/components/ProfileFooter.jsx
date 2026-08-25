@@ -18,7 +18,7 @@ const ProfileFooter = ({
           <div className="flex items-center gap-1.5">
             <h1 className="font-bold text-sm text-gray-800 truncate">DocuMind</h1>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-900 text-white font-semibold">
-              FREE
+              {user?.plan}
             </span>
           </div>
           <p className="text-[11px] text-gray-500 truncate">

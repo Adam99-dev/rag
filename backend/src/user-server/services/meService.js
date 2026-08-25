@@ -10,7 +10,8 @@ export async function getCurrentUser(userId) {
             id: true,
             name: true,
             email: true,
-            createdAt: true
+            createdAt: true,
+            plan: true
         }
     });
 
