@@ -82,8 +82,7 @@ const App = () => {
   const removeToast = (id) =>
     setToasts((current) => current.filter((toast) => toast.id !== id));
 
-  // API SERVICE
-  // I WILL CONNECT THIS
+
   const request = async (baseUrl, path, options = {}) => {
     const response = await fetch(`${baseUrl}${path}`, {
       credentials: "include",
