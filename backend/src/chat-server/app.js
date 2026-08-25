@@ -9,7 +9,6 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(corsMiddleware);
-app.use(corsMiddleware);
 
 app.get("/health", (req, res) => res.json({ ok: true, server: "chat" }));
 app.use("/api/chat", requireAuth, chatRoutes);
