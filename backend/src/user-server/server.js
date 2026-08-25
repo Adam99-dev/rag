@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-app.listen(3004, () => {
-  console.log(`User server running at http://localhost:3004`);
+const PORT = process.env.PORT
+app.listen(PORT, () => {
+  console.log(`User server running at http://localhost:${PORT}`);
 });

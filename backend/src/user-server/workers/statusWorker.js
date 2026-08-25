@@ -6,15 +6,16 @@ import { prisma } from "../config/prisma.js";
 import { corsMiddleware } from "../config/cors.js";
 
 const app = express();
+app.use(corsMiddleware);
 
 app.get("/", (req, res) => {
   res.status(200).send("Status Worker is running");
 });
 
-app.use(corsMiddleware);
 
-app.listen(3003, () => {
-  console.log(`Status Worker HTTP server running on port 3003`);
+const PORT = process.env.PORT || 3003;
+app.listen(PORT, () => {
+  console.log(`Status Worker HTTP server running on port ${PORT}`);
 });
 
 console.log("Status Worker Started");
