@@ -14,7 +14,6 @@ app.get("/", (req, res) => {
 });
 
 app.use(corsMiddleware);
-app.options("*", corsMiddleware);
 
 app.listen(PORT, () => {
   console.log(`Document Worker HTTP server running on port ${PORT}`);

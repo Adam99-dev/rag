@@ -13,7 +13,6 @@ app.get("/", (req, res) => {
 });
 
 app.use(corsMiddleware);
-app.options("*", corsMiddleware);
 
 app.listen(PORT, () => {
   console.log(`Status Worker HTTP server running on port ${PORT}`);

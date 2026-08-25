@@ -12,7 +12,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(corsMiddleware);
-app.options("*", corsMiddleware);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/document", docRoutes);
