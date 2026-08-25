@@ -3,24 +3,17 @@ import express from "express";
 import { Worker } from "bullmq";
 import client from "../config/redis.js";
 import { prisma } from "../config/prisma.js";
-import cors from "cors"
+import { corsMiddleware } from "../../config/cors.js";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.STATUS_PORT || 3005;
 
 app.get("/", (req, res) => {
   res.status(200).send("Status Worker is running");
 });
 
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
-  exposedHeaders: ['Set-Cookie'],
-}));
+app.use(corsMiddleware);
+app.options("*", corsMiddleware);
 
 app.listen(PORT, () => {
   console.log(`Status Worker HTTP server running on port ${PORT}`);

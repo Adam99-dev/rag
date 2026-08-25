@@ -2,21 +2,14 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import chatRoutes from "./routes/chatRoutes.js";
 import { requireAuth } from "./middleware/requireAuth.js";
-import cors from "cors";
+import { corsMiddleware } from "../config/cors.js";
 
 const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
-  exposedHeaders: ['Set-Cookie'],
-}));
+app.use(corsMiddleware);
+app.options("*", corsMiddleware);
 
 app.get("/health", (req, res) => res.json({ ok: true, server: "chat" }));
 app.use("/api/chat", requireAuth, chatRoutes);

@@ -1,9 +1,9 @@
 import express from "express";
 import cookieParser from "cookie-parser";
-import cors from "cors";
 import authRoutes from "./routes/userRoutes.js";
 import docRoutes from "./routes/docRoutes.js"
 import chatRoutes from "./routes/chatRoutes.js"
+import { corsMiddleware } from "../config/cors.js";
 
 
 const app = express();
@@ -11,15 +11,8 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
-  exposedHeaders: ['Set-Cookie'],
-}));
+app.use(corsMiddleware);
+app.options("*", corsMiddleware);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/document", docRoutes);

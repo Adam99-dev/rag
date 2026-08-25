@@ -5,9 +5,9 @@ import Sidebar from "./components/Sidebar";
 import ChatArea from "./components/ChatArea";
 import ToastContainer from "./components/ToastContainer";
 
-const USER_API_URL = import.meta.env.VITE_USER_API_URL || "";
+const USER_API_URL = import.meta.env.VITE_USER_API_URL || "/user-api";
 
-const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL || "";
+const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL || "/chat-api";
 
 const statusDetails = (status) => {
   const value = String(status || "UPLOADING").toUpperCase();
