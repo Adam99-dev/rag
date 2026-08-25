@@ -8,6 +8,9 @@
     "dev:user": "nodemon src/user-server/server.js",
     "dev:status_worker": "nodemon src/user-server/workers/statusWorker.js",
     "dev:message_worker": "nodemon src/user-server/workers/messageWorker.js",
+    "start:doc_worker": "node src/upload-server/workers/docWorker.js",
+    "start:status_worker": "node src/user-server/workers/statusWorker.js",
+    "start:message_worker": "node src/user-server/workers/messageWorker.js",
     "start:chat": "node src/chat-server/server.js",
     "start:user": "node src/user-server/server.js"
   },

@@ -1,6 +1,19 @@
+import "dotenv/config";
+import express from "express";
 import { Worker } from "bullmq";
 import client from "../config/redis.js";
 import { prisma } from "../config/prisma.js";
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+  res.status(200).send("Status Worker is running");
+});
+
+app.listen(PORT, () => {
+  console.log(`Status Worker HTTP server running on port ${PORT}`);
+});
 
 console.log("Status Worker Started");
 
@@ -28,7 +41,7 @@ const worker = new Worker(
   {
     connection: client,
     removeOnComplete: { count: 0 },
-  },
+  }
 );
 
 worker.on("completed", (job) => {

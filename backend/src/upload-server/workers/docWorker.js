@@ -1,9 +1,20 @@
 import "dotenv/config";
+import express from "express";
 import { Worker } from "bullmq";
 import client from "../config/redis.js";
 import { processDocument } from "../services/documentProcessor.js";
 import { statusQueue } from "../queue/statusQueue.js";
 
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+  res.status(200).send("Document Worker is running");
+});
+
+app.listen(PORT, () => {
+  console.log(`Document Worker HTTP server running on port ${PORT}`);
+});
 
 console.log("Document Processing Worker Started");
 
