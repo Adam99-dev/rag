@@ -13,7 +13,7 @@ app.get("/", (req, res) => {
 });
 
 
-const PORT = process.env.STATUS_SERVER_PORT || process.env.WORKER_SERVER_PORT || 3004;
+const PORT = process.env.STATUS_SERVER_PORT || process.env.PORT || 3004;
 app.listen(PORT, () => {
   console.log(`Status Worker HTTP server running on port ${PORT}`);
 });
