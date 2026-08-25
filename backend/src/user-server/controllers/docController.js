@@ -4,7 +4,6 @@ import { documentQueue } from "../queue/docQueue.js";
 import { supabase } from "../config/supabase.js";
 import { pineconeIndex } from "../config/pinecone.js";
 
-
 export const uploadDocument = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -65,7 +64,6 @@ export const uploadDocument = async (req, res) => {
         createdAt: document.createdAt,
       },
     });
-
   } catch (error) {
     console.error("Upload error:", error);
 
@@ -74,7 +72,6 @@ export const uploadDocument = async (req, res) => {
     });
   }
 };
-
 
 export const fetchAllDocuments = async (req, res) => {
   try {
@@ -106,7 +103,6 @@ export const fetchAllDocuments = async (req, res) => {
       message: "Documents fetched successfully",
       documents,
     });
-
   } catch (error) {
     console.error("Fetch documents error:", error);
 
@@ -115,8 +111,6 @@ export const fetchAllDocuments = async (req, res) => {
     });
   }
 };
-
-
 
 export const getDocument = async (req, res) => {
   try {
@@ -156,7 +150,6 @@ export const getDocument = async (req, res) => {
       message: "Document fetched successfully",
       document,
     });
-
   } catch (error) {
     console.error("Get document error:", error);
 
@@ -165,7 +158,6 @@ export const getDocument = async (req, res) => {
     });
   }
 };
-
 
 export const deleteDocument = async (req, res) => {
   try {
@@ -200,7 +192,9 @@ export const deleteDocument = async (req, res) => {
     }
 
     await pineconeIndex.deleteMany({
-      documentId: documentId,
+      filter: {
+        documentId: { $eq: documentId },
+      },
     });
 
     await prisma.document.delete({
@@ -210,9 +204,9 @@ export const deleteDocument = async (req, res) => {
     });
 
     return res.status(200).json({
-      message: "Document, file, chat, messages and vectors deleted successfully",
+      message:
+        "Document, file, chat, messages and vectors deleted successfully",
     });
-
   } catch (error) {
     console.error("Delete document error:", error);
 
