@@ -1,0 +1,43 @@
+{
+  "name": "multimodal_rag",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev:doc_worker": "nodemon src/upload-server/workers/docWorker.js",
+    "dev:chat": "nodemon src/chat-server/server.js",
+    "dev:user": "nodemon src/user-server/server.js",
+    "dev:status_worker": "nodemon src/user-server/workers/statusWorker.js",
+    "dev:message_worker": "nodemon src/user-server/workers/messageWorker.js",
+    "start:chat": "node src/chat-server/server.js",
+    "start:user": "node src/user-server/server.js"
+  },
+  "dependencies": {
+    "@google/genai": "^2.17.1",
+    "@langchain/community": "^1.1.29",
+    "@langchain/core": "^1.2.7",
+    "@langchain/google-genai": "^2.2.0",
+    "@pinecone-database/pinecone": "^8.2.0",
+    "@prisma/client": "^6.19.3",
+    "@supabase/supabase-js": "^2.112.3",
+    "@upstash/redis": "^1.38.2",
+    "bcrypt": "^6.0.0",
+    "bullmq": "^6.2.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "ioredis": "^5.11.1",
+    "jsonwebtoken": "^9.0.3",
+    "langchain": "^1.5.8",
+    "multer": "^2.2.0",
+    "pdf-parse": "^2.4.5",
+    "prisma": "^6.19.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.19.43",
+    "nodemon": "^3.1.14",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  }
+}

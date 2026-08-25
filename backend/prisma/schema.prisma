@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  plan      UserPlan @default(FREE)
+  createdAt DateTime @default(now())
+
+  documents Document[]
+  chats     Chat[]
+}
+
+model Document {
+  id        String         @id @default(uuid())
+  userId    String
+  filename  String
+  fileUrl   String
+  status    DocumentStatus @default(UPLOADING)
+  createdAt DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat Chat?
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Chat {
+  id         String   @id @default(uuid())
+  userId     String
+  documentId String   @unique
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  role      Role
+  content   String
+  sources   Json?
+  createdAt DateTime @default(now())
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId, createdAt])
+}
+
+enum Role {
+  USER
+  ASSISTANT
+}
+
+enum DocumentStatus {
+  UPLOADING
+  UPLOADED
+  DOWNLOADING
+  CHUNKING
+  EMBEDDING
+  INDEXING
+  COMPLETED
+  FAILED
+}
+
+enum UserPlan {
+  FREE
+  PREMIUM
+}
