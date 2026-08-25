@@ -14,7 +14,7 @@ app.get("/", (req, res) => {
 app.use(corsMiddleware);
 
 app.listen(3002, () => {
-  console.log(`Message Worker HTTP server running on port ${PORT}`);
+  console.log(`Message Worker HTTP server running on port 3002`);
 });
 
 console.log("Message Worker Started");

@@ -14,7 +14,7 @@ app.get("/", (req, res) => {
 app.use(corsMiddleware);
 
 app.listen(3003, () => {
-  console.log(`Status Worker HTTP server running on port ${PORT}`);
+  console.log(`Status Worker HTTP server running on port 3003`);
 });
 
 console.log("Status Worker Started");

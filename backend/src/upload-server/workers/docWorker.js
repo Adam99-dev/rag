@@ -15,7 +15,7 @@ app.get("/", (req, res) => {
 app.use(corsMiddleware);
 
 app.listen(3001, () => {
-  console.log(`Document Worker HTTP server running on port ${PORT}`);
+  console.log(`Document Worker HTTP server running on port 3001`);
 });
 
 console.log("Document Processing Worker Started");
