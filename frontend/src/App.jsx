@@ -3,11 +3,9 @@ import { theme } from "./theme";
 import AuthForm from "./components/AuthForm";
 import Sidebar from "./components/Sidebar";
 import ChatArea from "./components/ChatArea";
-import ToastContainer from "./components/ToastContainer";
-
-const USER_API_URL = import.meta.env.VITE_USER_API_URL || "/user-api";
-
-const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL || "/chat-api";
+import { useToast } from "./hooks/useToast";
+import { userApi } from "./api/userApi";
+import { chatApi } from "./api/chatApi";
 
 const statusDetails = (status) => {
   const value = String(status || "UPLOADING").toUpperCase();
@@ -53,6 +51,7 @@ const toMessage = (message) => ({
 });
 
 const App = () => {
+  const { showToast } = useToast();
   const [auth, setAuth] = useState({
     isAuth: false,
     mode: "login",
@@ -72,28 +71,6 @@ const App = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [docToDelete, setDocToDelete] = useState(null);
   const [openSources, setOpenSources] = useState({});
-  const [toasts, setToasts] = useState([]);
-
-  const showToast = (message, type = "info", duration = 3500) =>
-    setToasts((current) => [
-      ...current,
-      { id: Date.now() + Math.random(), message, type, duration },
-    ]);
-  const removeToast = (id) =>
-    setToasts((current) => current.filter((toast) => toast.id !== id));
-
-
-  const request = async (baseUrl, path, options = {}) => {
-    const response = await fetch(`${baseUrl}${path}`, {
-      credentials: "include",
-      ...options,
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok)
-      throw new Error(data.message || data.error || "Request failed");
-    return data;
-  };
-
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
     onResize();
@@ -104,8 +81,8 @@ const App = () => {
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const data = await request(USER_API_URL, "/api/auth/me");
-        setAuth((current) => ({ ...current, isAuth: true, user: data.user }));
+        const data = await userApi.me();
+        setAuth((current) => ({ ...current, isAuth: true, user: data.data.user }));
       } catch {
         // No active session is expected before a user signs in.
       }
@@ -118,7 +95,7 @@ const App = () => {
 
     const fetchDocuments = async () => {
       try {
-        const data = await request(USER_API_URL, "/api/document");
+        const data = await userApi.documents();
         const nextDocuments = (data.documents || []).map(toDocument);
         setDocs(nextDocuments);
         setSelected((current) =>
@@ -139,25 +116,15 @@ const App = () => {
       window.clearTimeout(initialFetch);
       window.clearInterval(statusPoll);
     };
-  }, [auth.isAuth]);
+  }, [auth.isAuth, showToast]);
 
   const handleAuth = async (event) => {
     event.preventDefault();
     try {
       const isLogin = auth.mode === "login";
-      const data = await request(
-        USER_API_URL,
-        isLogin ? "/api/auth/login" : "/api/auth/signup",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            isLogin
-              ? { email: auth.form.email, password: auth.form.password }
-              : auth.form,
-          ),
-        },
-      );
+      const data = await (isLogin
+        ? userApi.login({ email: auth.form.email, password: auth.form.password })
+        : userApi.signup(auth.form));
       const user = data.data.user;
       setAuth((current) => ({ ...current, isAuth: true, user }));
       showToast(
@@ -172,9 +139,8 @@ const App = () => {
   };
 
   const logout = async () => {
-    console.log(USER_API_URL);
     try {
-      await request(USER_API_URL, "/api/auth/logout", { method: "POST" });
+      await userApi.logout();
       setAuth({
         isAuth: false,
         mode: "login",
@@ -197,10 +163,7 @@ const App = () => {
     const formData = new FormData();
     formData.append("document", files[0]);
     try {
-      const data = await request(USER_API_URL, "/api/document", {
-        method: "POST",
-        body: formData,
-      });
+      const data = await userApi.upload(formData);
       setDocs((current) => [toDocument(data.document), ...current]);
       showToast(data.message || "Document uploaded successfully", "success");
     } catch (error) {
@@ -215,7 +178,7 @@ const App = () => {
       ),
     );
     try {
-      await request(USER_API_URL, `/api/document/${id}`, { method: "DELETE" });
+      await userApi.deleteDocument(id);
       setDocs((current) => current.filter((document) => document.id !== id));
       if (selected?.id === id) setSelected(null);
       setChat((current) => {
@@ -241,7 +204,7 @@ const App = () => {
     if (isMobile) setMobileView("chat");
     if (!document.chatId || chat[document.id]) return;
     try {
-      const data = await request(USER_API_URL, `/api/chat/${document.chatId}`);
+      const data = await userApi.chat(document.chatId);
       setChat((current) => ({
         ...current,
         [document.id]: (data.chat.messages || []).map(toMessage),
@@ -269,15 +232,11 @@ const App = () => {
     setMsg("");
     setTyping(true);
     try {
-      const data = await request(CHAT_API_URL, "/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const data = await chatApi.send({
           query: content,
           documentId,
           chatId: selected.chatId,
           history,
-        }),
       });
       setChat((current) => ({
         ...current,
@@ -313,7 +272,6 @@ const App = () => {
       style={{ background: theme.bg, color: "#1f2937" }}
     >
       <style>{`* { scrollbar-width: none; -ms-overflow-style: none; } *::-webkit-scrollbar { display: none; }`}</style>
-      <ToastContainer toasts={toasts} removeToast={removeToast} />
       {(!isMobile || mobileView === "docs") && (
         <Sidebar
           isMobile={isMobile}
