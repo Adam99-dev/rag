@@ -11,6 +11,12 @@ app.get("/", (req, res) => {
   res.status(200).send("Status Worker is running");
 });
 
+app.use(cors({
+    origin: [
+        'http://localhost:5173'
+    ]
+}));
+
 app.listen(PORT, () => {
   console.log(`Status Worker HTTP server running on port ${PORT}`);
 });

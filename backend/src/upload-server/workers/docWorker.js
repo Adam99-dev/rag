@@ -12,6 +12,12 @@ app.get("/", (req, res) => {
   res.status(200).send("Document Worker is running");
 });
 
+app.use(cors({
+    origin: [
+        'http://localhost:5173'
+    ]
+}));
+
 app.listen(PORT, () => {
   console.log(`Document Worker HTTP server running on port ${PORT}`);
 });

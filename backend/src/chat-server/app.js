@@ -7,8 +7,14 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
-app.get("/health", (req, res) => res.json({ ok: true, server: "chat" }));
+app.use(cors({
+    origin: [
+        'http://localhost:5173'
+    ]
+}));
 app.use(requireAuth);
+
+app.get("/health", (req, res) => res.json({ ok: true, server: "chat" }));
 app.use("/api/chat", chatRoutes);
 
 app.use((error, req, res, next) => {
