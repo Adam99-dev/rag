@@ -104,7 +104,7 @@ const AuthForm = ({ auth, setAuth, handleAuth }) => {
             </div>
             <button
               type="submit"
-              className="w-full mt-1 py-3.5 text-white font-semibold text-sm rounded-2xl transition hover:-translate-y-0.5"
+              className="w-full mt-1 py-3.5 text-white font-semibold text-sm rounded-2xl transition hover:-translate-y-0.5 cursor-pointer"
               style={theme.primary}
             >
               {auth.mode === "login" ? "Login to DocuMind" : "Create Account"}
