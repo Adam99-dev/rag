@@ -14,10 +14,9 @@ app.use(cors({
     ],
     credentials: true
 }));
-app.use(requireAuth);
 
 app.get("/health", (req, res) => res.json({ ok: true, server: "chat" }));
-app.use("/api/chat", chatRoutes);
+app.use("/api/chat", requireAuth, chatRoutes);
 
 app.use((error, req, res, next) => {
   console.error(error);
