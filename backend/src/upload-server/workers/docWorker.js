@@ -7,7 +7,6 @@ import { statusQueue } from "../queue/statusQueue.js";
 import { corsMiddleware } from "../config/cors.js";
 
 const app = express();
-const PORT = process.env.DOC_WORKER_PORT || 3004;
 
 app.get("/", (req, res) => {
   res.status(200).send("Document Worker is running");
@@ -15,7 +14,7 @@ app.get("/", (req, res) => {
 
 app.use(corsMiddleware);
 
-app.listen(PORT, () => {
+app.listen(3001, () => {
   console.log(`Document Worker HTTP server running on port ${PORT}`);
 });
 

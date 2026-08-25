@@ -13,9 +13,4 @@ app.use(corsMiddleware);
 app.get("/health", (req, res) => res.json({ ok: true, server: "chat" }));
 app.use("/api/chat", requireAuth, chatRoutes);
 
-app.use((error, req, res, next) => {
-  console.error(error);
-  res.status(500).json({ error: error.message || "Server error" });
-});
-
 export default app;

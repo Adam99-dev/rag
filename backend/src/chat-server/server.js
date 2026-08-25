@@ -1,8 +1,6 @@
 import "dotenv/config";
 import app from "./app.js";
 
-const port = process.env.PORT || 3003;
-
-app.listen(port, () => {
+app.listen(3000, () => {
   console.log(`Chat server running at http://localhost:${port}`);
 });
