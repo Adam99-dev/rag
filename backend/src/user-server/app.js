@@ -3,7 +3,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/userRoutes.js";
 import docRoutes from "./routes/docRoutes.js"
 import chatRoutes from "./routes/chatRoutes.js"
-import { corsMiddleware } from "../config/cors.js";
+import { corsMiddleware } from "./config/cors.js";
 
 
 const app = express();

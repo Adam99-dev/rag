@@ -3,7 +3,7 @@ import express from "express";
 import { Worker } from "bullmq";
 import client from "../config/redis.js";
 import { prisma } from "../config/prisma.js";
-import { corsMiddleware } from "../../config/cors.js";
+import { corsMiddleware } from "../config/cors.js";
 
 const app = express();
 const PORT = process.env.MESSAGE_PORT || 3006;

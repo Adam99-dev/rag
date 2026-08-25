@@ -4,7 +4,7 @@ import { Worker } from "bullmq";
 import client from "../config/redis.js";
 import { processDocument } from "../services/documentProcessor.js";
 import { statusQueue } from "../queue/statusQueue.js";
-import { corsMiddleware } from "../../config/cors.js";
+import { corsMiddleware } from "../config/cors.js";
 
 const app = express();
 const PORT = process.env.DOC_WORKER_PORT || 3004;

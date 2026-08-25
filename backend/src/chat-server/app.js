@@ -2,7 +2,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import chatRoutes from "./routes/chatRoutes.js";
 import { requireAuth } from "./middleware/requireAuth.js";
-import { corsMiddleware } from "../config/cors.js";
+import { corsMiddleware } from "./config/cors.js";
 
 const app = express();
 
