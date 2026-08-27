@@ -7,12 +7,12 @@ import { statusQueue } from "../queue/statusQueue.js";
 import { corsMiddleware } from "../config/cors.js";
 
 const app = express();
+app.use(corsMiddleware);
 
 app.get("/", (req, res) => {
   res.status(200).send("Document Worker is running");
 });
 
-app.use(corsMiddleware);
 const PORT = process.env.UPLOAD_SERVER_PORT || process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Document Worker HTTP server running on port ${PORT}`);

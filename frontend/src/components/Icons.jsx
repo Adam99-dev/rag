@@ -1,14 +1,14 @@
 export const Icon = {
   Logo: ({ className }) => (
-    <img src="../icons/logo.png" alt="" className={className} />
+    <img src="../logo.png" alt="" className={className} />
   ),
   Profile: ({ className }) => (
-    <img className={className} src="../icons/profile_icon.png" alt="" />
+    <img className={className} src="../profile_icon.png" alt="" />
   ),
   AI: ({ className }) => (
     <video
       className={className}
-      src="../icons/ai_icon.webm"
+      src="../ai_icon.webm"
       autoPlay
       loop
       muted
@@ -16,22 +16,22 @@ export const Icon = {
     />
   ),
   Upload: ({ className }) => (
-    <img className={className} src="../icons/upload_icon.png" alt="" />
+    <img className={className} src="../upload_icon.png" alt="" />
   ),
   File: ({ className }) => (
-    <img className={className} src="../icons/file_icon.png" alt="" />
+    <img className={className} src="../file_icon.png" alt="" />
   ),
   Search: ({ className }) => (
-    <img className={className} src="../icons/search_icon.png" alt="" />
+    <img className={className} src="../search_icon.png" alt="" />
   ),
   Send: ({ className }) => (
-    <img className={className} src="../icons/send_icon.png" alt="" />
+    <img className={className} src="../send_icon.png" alt="" />
   ),
   Trash: ({ className }) => (
-    <img className={className} src="../icons/delete_icon.png" alt="" />
+    <img className={className} src="../delete_icon.png" alt="" />
   ),
   Database: ({ className }) => (
-    <img className={className} src="../icons/database_icon.png" alt="" />
+    <img className={className} src="../database_icon.png" alt="" />
   ),
   Logout: ({ className }) => (
     <svg
@@ -49,7 +49,7 @@ export const Icon = {
     </svg>
   ),
   Settings: ({ className }) => (
-    <img className={className} src="../icons/setting_icon.png" alt="" />
+    <img className={className} src="../setting_icon.png" alt="" />
   ),
   ChevronLeft: ({ className }) => (
     <svg
@@ -67,7 +67,7 @@ export const Icon = {
     </svg>
   ),
   Danger: ({ className }) => (
-    <img className={className} src="../icons/danger_icon.png" alt="" />
+    <img className={className} src="../danger_icon.png" alt="" />
   ),
   ChevronDown: ({ className }) => (
     <svg
@@ -82,20 +82,20 @@ export const Icon = {
   ),
 
   Success: ({ className }) => (
-    <img className={className} src="../icons/tick_icon.png" alt="" />
+    <img className={className} src="../tick_icon.png" alt="" />
   ),
   Info: ({ className }) => (
-    <img className={className} src="../icons/info_icon.png" alt="" />
+    <img className={className} src="../info_icon.png" alt="" />
   ),
   Warning: ({ className }) => (
-    <img className={className} src="../icons/warning_icon.png" alt="" />
+    <img className={className} src="../warning_icon.png" alt="" />
   ),
   Error: ({ className }) => (
-    <img className={className} src="../icons/error_icon.png" alt="" />
+    <img className={className} src="../error_icon.png" alt="" />
   ),
 
   Clock: ({ className }) => (
-    <img className={className} src="../icons/clock_icon.png" alt="" />
+    <img className={className} src="../clock_icon.png" alt="" />
   ),
 };
 
