@@ -1,9 +1,6 @@
 import cors from "cors";
 
 export const corsMiddleware = cors({
-  origin: [
-    "http://localhost:5173",
-    process.env.FRONTEND_URL,
-  ],
+  origin: "https://doc-u-mind.vercel.app",
   credentials: true,
 });
