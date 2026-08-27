@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "./Icons";
 
 const typeStyles = {
@@ -28,59 +28,133 @@ const typeStyles = {
   },
 };
 
-const Toast = ({ id, message, type = "info", duration = 3500, onClose }) => {
-  useEffect(() => {
+const Toast = ({
+  id,
+  message,
+  type = "info",
+  duration = 3500,
+  onClose,
+  action,
+  pauseOnHover = true,
+  closeOnClick = true,
+}) => {
+  const [isExiting, setIsExiting] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const timerRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const remainingTimeRef = useRef(duration);
+
+  const handleClose = () => {
+    setIsExiting(true);
+    setTimeout(() => onClose(id), 300);
+  };
+
+  const startTimer = () => {
     if (duration <= 0) return;
-    const timer = setTimeout(() => onClose(id), duration);
-    return () => clearTimeout(timer);
-  }, [id, duration, onClose]);
+
+    startTimeRef.current = Date.now();
+    timerRef.current = setTimeout(handleClose, remainingTimeRef.current);
+  };
+
+  const pauseTimer = () => {
+    if (!pauseOnHover || isPaused) return;
+
+    setIsPaused(true);
+    clearTimeout(timerRef.current);
+
+    const elapsed = Date.now() - startTimeRef.current;
+    remainingTimeRef.current = Math.max(0, remainingTimeRef.current - elapsed);
+  };
+
+  const resumeTimer = () => {
+    if (!pauseOnHover || !isPaused) return;
+
+    setIsPaused(false);
+    startTimer();
+  };
+
+  useEffect(() => {
+    if (duration > 0) {
+      startTimer();
+    }
+
+    return () => {
+      clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const style = typeStyles[type] || typeStyles.info;
   const IconComponent = style.icon;
 
   return (
     <div
-      className="flex items-start gap-3 px-4 py-3.5 min-w-[280px] max-w-[380px] pointer-events-auto"
+      className={`relative flex items-start gap-3 px-4 py-3.5 min-w-[320px] max-w-[420px] pointer-events-auto cursor-pointer select-none
+        ${isExiting ? "toast-exit" : "toast-enter"}`}
       style={{
         background: style.bg,
         borderRadius: "16px",
-        boxShadow:
-          "0 10px 40px rgba(0,0,0,0.10), 0 2px 10px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9)",
+        boxShadow: `0 4px 12px rgba(0,0,0,0.1)`,
         border: style.border,
-        animation: "toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        transform: isPaused ? "scale(0.98)" : "scale(1)",
+        transition: "transform 0.2s ease",
       }}
+      onMouseEnter={pauseTimer}
+      onMouseLeave={resumeTimer}
+      onClick={closeOnClick ? handleClose : undefined}
+      role="alert"
+      aria-live="polite"
     >
-      {/* Icon */}
       <div
-        className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5"
-        style={{ background: `${style.accent}18` }}
+        className="relative flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center mt-0.5"
+        style={{
+          background: `${style.accent}18`,
+        }}
       >
-        <IconComponent
-          className="w-4.5 h-4.5"
-          style={{ color: style.accent }}
-        />
+        <IconComponent className="w-5 h-5" style={{ color: style.accent }} />
       </div>
 
-      <p className="flex-1 text-sm font-medium text-gray-800 leading-snug pt-1.5">
-        {message}
-      </p>
+      <div className="relative flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-800 leading-snug pt-2 break-words">
+          {message}
+        </p>
+      </div>
 
-      <button
-        onClick={() => onClose(id)}
-        className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-black/5 transition mt-0.5"
-        aria-label="Close"
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
+      {action ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            action.onClick?.();
+            handleClose();
+          }}
+          className="relative flex-shrink-0 mt-0.5 px-4 py-2 rounded-full text-xs font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:shadow-sm"
+          style={{
+            background: style.accent,
+          }}
         >
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
-      </button>
+          {action.label}
+        </button>
+      ) : (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClose();
+          }}
+          className="relative flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-black/5 transition-all duration-200 mt-0.5"
+          aria-label="Close notification"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="4"
+            strokeLinecap="round"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 };

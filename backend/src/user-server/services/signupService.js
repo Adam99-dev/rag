@@ -1,6 +1,9 @@
-import {prisma} from "../config/prisma.js";
+import { prisma } from "../config/prisma.js";
 import { generateToken } from "../utils/jwt.js";
 import bcrypt from "bcrypt";
+import {stripeClient} from "../config/stripe.js";
+import "dotenv/config";
+
 
 export async function signup(name, email, password, res) {
 
@@ -24,25 +27,38 @@ export async function signup(name, email, password, res) {
         }
     });
 
+    const stripeCustomer = await stripeClient.customers.create({
+        name: name,
+        email: email,
+        metadata: {
+            userId: newUser.id
+        }
+    });
+
+    const updatedUser = await prisma.user.update({
+        where: { id: newUser.id },
+        data: { stripeCustomerId: stripeCustomer.id }
+    });
+
     const token = generateToken(newUser.id, newUser.email);
 
-    const isSecure = process.env.NODE_ENV === "production" || process.env.COOKIE_SECURE === "true";
+    const isSecure = process.env.NODE_ENV !== "development" || process.env.COOKIE_SECURE === "true";
     res.cookie("token", token, {
         httpOnly: true,
         secure: isSecure,
         sameSite: isSecure ? "none" : "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: "/",
-        ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
     });
 
-    const { password: _, ...userWithoutPassword } = newUser;
+    const { password: _, ...userWithoutPassword } = updatedUser;
 
     return {
         status: 201,
         data: {
             user: userWithoutPassword,
-            token
+            token,
+            stripeCustomerId: stripeCustomer.id
         }
     };
 }

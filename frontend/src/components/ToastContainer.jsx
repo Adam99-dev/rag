@@ -39,6 +39,7 @@ const ToastContainer = ({ toasts, removeToast }) => {
             message={t.message}
             type={t.type}
             duration={t.duration}
+            action={t.action}
             onClose={removeToast}
           />
         ))}

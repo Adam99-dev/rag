@@ -93,4 +93,9 @@ export const Icon = {
   Error: ({ className }) => (
     <img className={className} src="../icons/error_icon.png" alt="" />
   ),
+
+  Clock: ({ className }) => (
+    <img className={className} src="../icons/clock_icon.png" alt="" />
+  ),
 };
+

@@ -35,10 +35,6 @@ export async function indexToPinecone(pdfBuffer, documentId) {
     for (const batch of batches) {
       await pineconeIndex.upsert({ records: batch });
     }
-    await statusQueue.add("status", {
-  documentId,
-  status: "COMPLETED",
-});
     return { count: vectors.length };
 
   } catch (error) {

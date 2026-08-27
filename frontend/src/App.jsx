@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { theme } from "./theme";
 import AuthForm from "./components/AuthForm";
 import Sidebar from "./components/Sidebar";
 import ChatArea from "./components/ChatArea";
 import ToastContainer from "./components/ToastContainer";
+import UpgradePage from "./components/UpgradePage";
 import { useAuth } from "./hooks/useAuth";
 import { authApi } from "./api/auth.api";
 import { documentApi } from "./api/document.api";
@@ -49,11 +50,13 @@ const toMessage = (message) => ({
   id: message.id,
   role: String(message.role).toLowerCase() === "user" ? "user" : "ai",
   content: message.content,
+  createdAt: message.createdAt,
   citations: toCitations(message.sources),
 });
 
 const App = () => {
-  const { loggedUser, setLoggedUser, isLoggedIn, setIsLoggedIn, authLoading } = useAuth();
+  const { loggedUser, setLoggedUser, isLoggedIn, setIsLoggedIn, authLoading } =
+    useAuth();
   const [auth, setAuth] = useState({
     mode: "login",
     form: { name: "", email: "", password: "" },
@@ -74,23 +77,36 @@ const App = () => {
   const [documentsLoading, setDocumentsLoading] = useState(false);
   const [documentsVersion, setDocumentsVersion] = useState(0);
   const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(
+    window.location.pathname === "/upgrade",
+  );
   const [toasts, setToasts] = useState([]);
-  const showToast = useCallback((message, type = "info", duration = 3500) =>
-    setToasts((current) => [...current, { id: Date.now() + Math.random(), message, type, duration }]), []);
-  const removeToast = (id) => setToasts((current) => current.filter((toast) => toast.id !== id));
+  const statusToastRef = useRef({});
+  const docsRef = useRef([]);
+  const showToast = useCallback(
+    (message, type = "info", duration = 3500, action) =>
+      setToasts((current) => [
+        ...current,
+        { id: Date.now() + Math.random(), message, type, duration, action },
+      ]),
+    [],
+  );
+  const removeToast = (id) =>
+    setToasts((current) => current.filter((toast) => toast.id !== id));
 
   useEffect(() => {
-    const showError = (value) => showToast(value instanceof Error ? value.message : value || "Unexpected error", "error");
+    const showError = (value) =>
+      showToast(
+        value instanceof Error ? value.message : value || "Unexpected error",
+        "error",
+      );
     const onError = (event) => showError(event.error || event.message);
     const onRejection = (event) => showError(event.reason);
-    const originalWarn = console.warn;
-    console.warn = (...args) => { showToast(args.join(" "), "warning"); originalWarn(...args); };
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);
     return () => {
       window.removeEventListener("error", onError);
       window.removeEventListener("unhandledrejection", onRejection);
-      console.warn = originalWarn;
     };
   }, [showToast]);
   useEffect(() => {
@@ -99,6 +115,26 @@ const App = () => {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  useEffect(() => {
+    docsRef.current = docs;
+  }, [docs]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      setShowUpgrade(window.location.pathname === "/upgrade");
+      const chatId = window.location.pathname.split("/").filter(Boolean)[0];
+      const match = chatId
+        ? docsRef.current.find((document) => document.chatId === chatId)
+        : null;
+      setSelected(match || null);
+      if (match) sessionStorage.setItem("selectedDocumentId", match.id);
+      else sessionStorage.removeItem("selectedDocumentId");
+      if (match && isMobile) setMobileView("chat");
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [isMobile]);
 
   useEffect(() => {
     if (!isLoggedIn) return undefined;
@@ -110,14 +146,41 @@ const App = () => {
       try {
         const data = await documentApi.list();
         const nextDocuments = (data.documents || []).map(toDocument);
+        nextDocuments.forEach((document) => {
+          const previous = statusToastRef.current[document.id];
+          if (previous && previous !== document.backendStatus) {
+            if (document.backendStatus === "COMPLETED")
+              showToast(`"${document.name}" is ready to chat`, "success");
+            else if (document.backendStatus === "FAILED")
+              showToast(`Processing failed for "${document.name}"`, "error");
+          }
+          statusToastRef.current[document.id] = document.backendStatus;
+        });
         setDocs(nextDocuments);
+        const urlChatId = window.location.pathname
+          .split("/")
+          .filter(Boolean)[0];
         setSelected((current) =>
           current
             ? nextDocuments.find((document) => document.id === current.id) ||
               null
-            : nextDocuments.find((document) => document.id === sessionStorage.getItem("selectedDocumentId")) || null,
+            : (urlChatId &&
+                nextDocuments.find(
+                  (document) => document.chatId === urlChatId,
+                )) ||
+              nextDocuments.find(
+                (document) =>
+                  document.id === sessionStorage.getItem("selectedDocumentId"),
+              ) ||
+              null,
         );
-        if (active && nextDocuments.some((document) => !["COMPLETED", "FAILED"].includes(document.backendStatus)))
+        if (
+          active &&
+          nextDocuments.some(
+            (document) =>
+              !["COMPLETED", "FAILED"].includes(document.backendStatus),
+          )
+        )
           pollTimer = window.setTimeout(fetchDocuments, 5000);
       } catch (error) {
         if (error.message !== "Authentication required. Please login.")
@@ -134,12 +197,29 @@ const App = () => {
     };
   }, [isLoggedIn, documentsVersion, showToast]);
 
+  const selectedId = selected?.id;
+  const selectedChatId = selected?.chatId;
+  const loadedChatsRef = useRef(new Set());
   useEffect(() => {
-    if (!selected?.chatId || chat[selected.id]) return;
-    chatApi.get(selected.chatId)
-      .then((data) => setChat((current) => ({ ...current, [selected.id]: (data.chat.messages || []).map(toMessage) })))
-      .catch((error) => showToast(error.message || "Unable to load chat history", "error"));
-  }, [selected, chat, showToast]);
+    if (!selectedChatId || loadedChatsRef.current.has(selectedChatId)) return;
+    let cancelled = false;
+    chatApi
+      .get(selectedChatId)
+      .then((data) => {
+        if (cancelled || !selectedId) return;
+        loadedChatsRef.current.add(selectedChatId);
+        setChat((current) => ({
+          ...current,
+          [selectedId]: (data.chat.messages || []).map(toMessage),
+        }));
+      })
+      .catch((error) =>
+        showToast(error.message || "Unable to load chat history", "error"),
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, selectedChatId, showToast]);
 
   const handleAuth = async (event) => {
     event.preventDefault();
@@ -148,7 +228,10 @@ const App = () => {
     try {
       const isLogin = auth.mode === "login";
       const data = await (isLogin
-        ? authApi.login({ email: auth.form.email, password: auth.form.password })
+        ? authApi.login({
+            email: auth.form.email,
+            password: auth.form.password,
+          })
         : authApi.signup(auth.form));
       const user = data.data.user;
       setLoggedUser(user);
@@ -175,12 +258,16 @@ const App = () => {
       });
       setLoggedUser(null);
       setIsLoggedIn(false);
+      showToast("You have been logged out", "success");
       setDocs([]);
       setSelected(null);
       setChat({});
       setMobileView("docs");
       setProfileMenuOpen(false);
       setOpenSources({});
+      sessionStorage.removeItem("selectedDocumentId");
+      loadedChatsRef.current.clear();
+      window.history.pushState({}, "", "/");
     } catch (error) {
       showToast(error.message || "Unable to log out", "error");
     }
@@ -192,11 +279,26 @@ const App = () => {
     formData.append("document", files[0]);
     try {
       const data = await documentApi.upload(formData);
-      setDocs((current) => [toDocument(data.document), ...current]);
       setDocumentsVersion((value) => value + 1);
       showToast(data.message || "Document uploaded successfully", "success");
     } catch (error) {
-      showToast(error.message || "Unable to upload document", "error");
+      const isLimitError = String(error.message || "").startsWith(
+        "Document limit reached",
+      );
+      showToast(
+        error.message || "Unable to upload document",
+        isLimitError ? "warning" : "error",
+        isLimitError ? 8000 : 3500,
+        isLimitError
+          ? {
+              label: "Upgrade to Pro",
+              onClick: () => {
+                window.history.pushState({}, "", "/upgrade");
+                setShowUpgrade(true);
+              },
+            }
+          : undefined,
+      );
     }
   };
 
@@ -212,12 +314,14 @@ const App = () => {
       if (selected?.id === id) {
         setSelected(null);
         sessionStorage.removeItem("selectedDocumentId");
+        window.history.pushState({}, "", "/");
       }
       setChat((current) => {
         const next = { ...current };
         delete next[id];
         return next;
       });
+      loadedChatsRef.current.delete(id);
       showToast("Document deleted successfully", "success");
     } catch (error) {
       setDocs((current) =>
@@ -234,6 +338,11 @@ const App = () => {
   const handleDocSelect = async (document) => {
     setSelected(document);
     sessionStorage.setItem("selectedDocumentId", document.id);
+    window.history.pushState(
+      {},
+      "",
+      document.chatId ? `/${document.chatId}` : "/",
+    );
     if (isMobile) setMobileView("chat");
   };
 
@@ -256,10 +365,10 @@ const App = () => {
     setTyping(true);
     try {
       const data = await chatApi.send({
-          query: content,
-          documentId,
-          chatId: selected.chatId,
-          history,
+        query: content,
+        documentId,
+        chatId: selected.chatId,
+        history,
       });
       setChat((current) => ({
         ...current,
@@ -286,9 +395,85 @@ const App = () => {
     document.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500" style={{ background: theme.bg }}>Loading...</div>;
+  if (authLoading)
+    return (
+      <div
+        className="h-screen flex overflow-hidden"
+        style={{ background: theme.bg, color: "#1f2937" }}
+      >
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
+        <Sidebar
+          isMobile={isMobile}
+          drag={drag}
+          setDrag={setDrag}
+          upload={upload}
+          search={search}
+          setSearch={setSearch}
+          filteredDocs={[]}
+          loading
+          selected={null}
+          onSelect={handleDocSelect}
+          showDeleteConfirm={showDeleteConfirm}
+          docToDelete={docToDelete}
+          setShowDeleteConfirm={setShowDeleteConfirm}
+          setDocToDelete={setDocToDelete}
+          handleDeleteDoc={handleDeleteDoc}
+          user={null}
+          profileLoading
+          profileMenuOpen={profileMenuOpen}
+          setProfileMenuOpen={setProfileMenuOpen}
+          logout={logout}
+        />
+        <ChatArea
+          selected={null}
+          isMobile={isMobile}
+          setMobileView={setMobileView}
+          chat={{}}
+          typing={false}
+          loading={false}
+          openSources={{}}
+          toggleSources={toggleSources}
+          msg=""
+          setMsg={setMsg}
+          sendMsg={sendMsg}
+        />
+      </div>
+    );
 
-  if (!isLoggedIn) return <><ToastContainer toasts={toasts} removeToast={removeToast} /><AuthForm auth={auth} setAuth={setAuth} handleAuth={handleAuth} authLoading={authSubmitting} /></>;
+  if (!isLoggedIn)
+    return (
+      <>
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
+        <AuthForm
+          auth={auth}
+          setAuth={setAuth}
+          handleAuth={handleAuth}
+          authLoading={authSubmitting}
+        />
+      </>
+    );
+
+  if (showUpgrade)
+    return (
+      <>
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
+        <UpgradePage
+          user={loggedUser}
+          onBack={() => {
+            window.history.pushState({}, "", "/");
+            setShowUpgrade(false);
+          }}
+          onSuccess={() => {
+            setLoggedUser((current) =>
+              current ? { ...current, plan: "PREMIUM" } : current,
+            );
+            showToast("Payment successful — welcome to Pro!", "success");
+            window.history.pushState({}, "", "/");
+            setShowUpgrade(false);
+          }}
+        />
+      </>
+    );
 
   return (
     <div
@@ -306,7 +491,7 @@ const App = () => {
           search={search}
           setSearch={setSearch}
           filteredDocs={filtered}
-          loading={documentsLoading}
+          loading={documentsLoading && docs.length === 0}
           selected={selected}
           onSelect={handleDocSelect}
           showDeleteConfirm={showDeleteConfirm}
@@ -315,6 +500,7 @@ const App = () => {
           setDocToDelete={setDocToDelete}
           handleDeleteDoc={handleDeleteDoc}
           user={loggedUser}
+          profileLoading={false}
           profileMenuOpen={profileMenuOpen}
           setProfileMenuOpen={setProfileMenuOpen}
           logout={logout}

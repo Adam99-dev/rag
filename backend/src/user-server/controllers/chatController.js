@@ -2,10 +2,20 @@ import { prisma } from "../config/prisma.js";
 
 export const getChat = async (req, res) => {
   try {
+    const userId = req.user?.id;
     const chatId = req.params.id;
 
-    const chat = await prisma.chat.findUnique({
-      where: { id: chatId },
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+
+    const chat = await prisma.chat.findFirst({
+      where: {
+        id: chatId,
+        userId,
+      },
       select: {
         id: true,
         documentId: true,
@@ -13,6 +23,13 @@ export const getChat = async (req, res) => {
         messages: {
           orderBy: {
             createdAt: "asc",
+          },
+          select: {
+            id: true,
+            content: true,
+            role: true,
+            createdAt: true,
+            sources: true,
           },
         },
       },

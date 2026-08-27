@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState } from "react";
-import { authApi } from "../api/auth.api";
+import { userApi } from "../api/user.api";
 
 const AuthContext = createContext(null);
 
@@ -9,13 +9,20 @@ export const AuthProvider = ({ children }) => {
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    authApi.me()
+    let cancelled = false;
+    userApi.me()
       .then(({ data }) => {
+        if (cancelled) return;
         setLoggedUser(data.user);
         setIsLoggedIn(true);
       })
       .catch(() => {})
-      .finally(() => setAuthLoading(false));
+      .finally(() => {
+        if (!cancelled) setAuthLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

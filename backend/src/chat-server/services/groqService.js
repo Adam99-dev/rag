@@ -1,6 +1,6 @@
 import { hybridSearch } from "./searchingService.js";
 import { rerankSearchResults } from "./rerankerService.js";
-import {messageQueue} from "../queue/messageQueue.js";
+import { messageQueue } from "../queue/messageQueue.js";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
@@ -28,12 +28,7 @@ async function callGroq(messages) {
   return data.choices[0].message.content;
 }
 
-export async function chatWithGroq(
-  query,
-  documentId,
-  chatId,
-  history = []
-) {
+export async function chatWithGroq(query, documentId, chatId, history = []) {
   // Save user message
   await messageQueue.add("save-message", {
     chatId,
@@ -53,8 +48,20 @@ export async function chatWithGroq(
   const messages = [
     {
       role: "system",
-      content:
-        "Answer only from the provided context. If the answer is not present, say you don't know.",
+      content: `You are a helpful assistant. Answer ONLY from the provided PDF context.
+
+RULES:
+- Give a **simple, concise answer**, preferably in one line.
+- **Bold important facts/names/numbers**.
+- Use *italics only for brief parenthetical details*.
+- No headings.
+- No bullet points unless needed for multiple distinct facts.
+- No tables.
+- No code blocks.
+- Do not mention "according to the context".
+- Do not add information that is not in the PDF.
+- If the answer is not found in the PDF, reply exactly:
+  "The PDF you shared has no instances of {query}."`,
     },
     ...history,
     {

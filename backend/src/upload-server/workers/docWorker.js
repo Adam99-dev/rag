@@ -32,8 +32,10 @@ const worker = new Worker(
   },
   {
     connection: client,
+    drainDelay: 60,
+    stalledInterval: 300000,
     removeOnComplete: { count: 0 },
-  }
+  },
 );
 
 worker.on("completed", (job) => {

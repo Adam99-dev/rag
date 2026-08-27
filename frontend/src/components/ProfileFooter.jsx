@@ -3,10 +3,26 @@ import { Icon } from "./Icons";
 
 const ProfileFooter = ({
   user,
+  profileLoading = false,
   profileMenuOpen,
   setProfileMenuOpen,
   logout,
 }) => {
+  if (profileLoading) {
+    return (
+      <div
+        className="flex-shrink-0 p-3 flex items-center gap-2"
+        style={theme.panel}
+      >
+        <div className="w-8 h-8 rounded-xl flex-shrink-0 animate-pulse bg-gray-200" />
+        <div className="min-w-0 space-y-1.5">
+          <div className="h-3 w-20 rounded bg-gray-200 animate-pulse" />
+          <div className="h-2.5 w-14 rounded bg-gray-100 animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="flex-shrink-0 p-3 flex items-center justify-between gap-2 relative"
@@ -16,13 +32,15 @@ const ProfileFooter = ({
         <Icon.Logo className="w-8 h-8 rounded-xl flex-shrink-0" />
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <h1 className="font-bold text-sm text-gray-800 truncate">DocuMind</h1>
+            <h1 className="font-bold text-sm text-gray-800 truncate">
+              DocuMind
+            </h1>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-900 text-white font-semibold">
-              {user?.plan}
+              {user?.plan || "FREE"}
             </span>
           </div>
           <p className="text-[11px] text-gray-500 truncate">
-            <span className="font-bold">{user?.name || "Guest"}</span>
+            <span className="font-bold">{user?.name || " "}</span>
           </p>
         </div>
       </div>
@@ -51,7 +69,7 @@ const ProfileFooter = ({
             >
               <div className="px-4 py-3 border-b border-gray-100">
                 <p className="text-sm font-semibold text-gray-800 truncate">
-                  {user?.name || "Guest"}
+                  {user?.name || " "}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
                   {user?.email || "Not signed in"}

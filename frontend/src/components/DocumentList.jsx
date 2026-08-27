@@ -16,9 +16,23 @@ const DocumentList = ({
     >
       <div className="h-full overflow-y-auto p-2 space-y-2">
         {loading ? (
-          <div className="h-full p-2 space-y-2 animate-pulse">
-            <div className="h-20 rounded-[14px] bg-gray-100" />
-            <div className="h-20 rounded-[14px] bg-gray-100" />
+          <div className="p-2 space-y-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="p-3 animate-pulse"
+                style={{ ...theme.panel, borderRadius: "14px" }}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gray-200" />
+                  <div className="flex-1 min-w-0 pr-4 space-y-2 pt-1">
+                    <div className="h-3.5 w-3/4 rounded bg-gray-200" />
+                    <div className="h-2.5 w-1/3 rounded bg-gray-200" />
+                    <div className="h-2 w-1/4 rounded-full bg-gray-100 mt-2" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : docs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-10 text-gray-400">

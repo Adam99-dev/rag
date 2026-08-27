@@ -22,14 +22,13 @@ export async function login(email, password, res) {
 
     const token = generateToken(user.id, user.email);
 
-    const isSecure = process.env.NODE_ENV === "production" || process.env.COOKIE_SECURE === "true";
+    const isSecure = process.env.NODE_ENV !== "development" || process.env.COOKIE_SECURE === "true";
     res.cookie("token", token, {
         httpOnly: true,
         secure: isSecure,
         sameSite: isSecure ? "none" : "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: "/",
-        ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
     });
 
     const { password: _, ...userWithoutPassword } = user;

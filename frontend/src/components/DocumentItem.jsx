@@ -1,5 +1,18 @@
+import { useEffect, useState } from "react";
 import { theme } from "../theme";
 import { Icon } from "./Icons";
+
+const PROGRESS_RANGES = {
+  UPLOADING: [0, 5],
+  UPLOADED: [5, 20],
+  DOWNLOADING: [20, 30],
+  EXTRACTING: [30, 35],
+  CHUNKING: [35, 50],
+  EMBEDDING: [50, 75],
+  INDEXING: [75, 99],
+  COMPLETED: [100, 100],
+  FAILED: [0, 0],
+};
 
 const DocumentItem = ({
   doc,
@@ -8,6 +21,25 @@ const DocumentItem = ({
   onRequestDelete,
 }) => {
   const isReady = doc.status === "ready";
+  const range =
+    PROGRESS_RANGES[String(doc.backendStatus || "").toUpperCase()] ||
+    PROGRESS_RANGES.UPLOADING;
+  const [prevStatus, setPrevStatus] = useState(doc.backendStatus);
+  const [progress, setProgress] = useState(range[0]);
+  if (prevStatus !== doc.backendStatus) {
+    setPrevStatus(doc.backendStatus);
+    setProgress(range[0]);
+  }
+
+  useEffect(() => {
+    const [, max] = PROGRESS_RANGES[String(doc.backendStatus || "").toUpperCase()] || PROGRESS_RANGES.UPLOADING;
+    if (!max || max <= range[0]) return;
+    const timer = setInterval(() => {
+      setProgress((current) => Math.min(max, current + 5));
+    }, 700);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc.backendStatus]);
 
   return (
     <div
@@ -52,7 +84,7 @@ const DocumentItem = ({
                   {doc.loadingText}
                 </span>
                 <span className="text-[11px] font-semibold text-blue-600">
-                  {doc.progress}%
+                  {progress}%
                 </span>
               </div>
             ) : (

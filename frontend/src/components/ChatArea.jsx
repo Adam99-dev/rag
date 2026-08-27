@@ -44,7 +44,8 @@ const ChatArea = ({
           <MessageList
             messages={chat[selected.id] || []}
             selectedName={selected.name}
-            typing={typing || loading}
+            loading={loading}
+            typing={typing}
             openSources={openSources}
             toggleSources={toggleSources}
           />
@@ -52,6 +53,7 @@ const ChatArea = ({
             msg={msg}
             setMsg={setMsg}
             sendMsg={sendMsg}
+            disabled={typing || loading}
             selectedName={selected.name}
           />
         </>

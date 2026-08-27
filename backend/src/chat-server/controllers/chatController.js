@@ -8,7 +8,7 @@ export async function chat(req, res, next) {
       return res.status(400).json({ error: "query is required" });
     }
 
-    return res.json(await chatWithGroq(query, documentId, chatId, documents, history));
+    return res.json(await chatWithGroq(query, documentId, chatId, history));
   } catch (error) {
     return next(error);
   }

@@ -9,12 +9,14 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  plan      UserPlan @default(FREE)
-  createdAt DateTime @default(now())
+  id                String   @id @default(uuid())
+  name              String
+  email             String   @unique
+  password          String
+  plan              UserPlan @default(FREE)
+  stripeCustomerId  String?  @unique
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   documents Document[]
   chats     Chat[]

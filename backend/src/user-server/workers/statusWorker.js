@@ -18,7 +18,6 @@ app.listen(PORT, () => {
   console.log(`Status Worker HTTP server running on port ${PORT}`);
 });
 
-console.log("Status Worker Started");
 
 const worker = new Worker(
   "document-status",
@@ -43,6 +42,8 @@ const worker = new Worker(
   },
   {
     connection: client,
+    drainDelay: 60,
+    stalledInterval: 300000,
     removeOnComplete: { count: 0 },
   }
 );
