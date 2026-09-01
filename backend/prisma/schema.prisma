@@ -9,17 +9,16 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(uuid())
-  name              String
-  email             String   @unique
-  password          String
-  plan              UserPlan @default(FREE)
-  stripeCustomerId  String?  @unique
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  documents Document[]
-  chats     Chat[]
+  id               String     @id @default(uuid())
+  name             String
+  email            String     @unique
+  password         String
+  plan             UserPlan   @default(FREE)
+  stripeCustomerId String?    @unique
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  chats            Chat[]
+  documents        Document[]
 }
 
 model Document {
@@ -29,23 +28,21 @@ model Document {
   fileUrl   String
   status    DocumentStatus @default(UPLOADING)
   createdAt DateTime       @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chat Chat?
+  chat      Chat?
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
 }
 
 model Chat {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   userId     String
-  documentId String   @unique
-  createdAt  DateTime @default(now())
-
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  messages Message[]
+  documentId String    @unique
+  createdAt  DateTime  @default(now())
+  document   Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages   Message[]
 
   @@index([userId])
 }
@@ -57,8 +54,7 @@ model Message {
   content   String
   sources   Json?
   createdAt DateTime @default(now())
-
-  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
   @@index([chatId, createdAt])
 }

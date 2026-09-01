@@ -472,6 +472,8 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
     setPhase("idle");
     land();
     setVerdict({ say: "", sub: "" });
+    setErrors({ name: "", number: "", expiry: "", cvc: "" });
+    setComplete({ number: false, expiry: false, cvc: false });
     requestAnimationFrame(() => numElRef.current?.focus?.());
   };
 
