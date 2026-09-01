@@ -1,18 +1,9 @@
 import { stripeClient } from "../config/stripe.js";
 import { prisma } from "../config/prisma.js";
 
-// Price of the Premium plan, in the smallest currency unit's base (INR rupees).
 const PREMIUM_PRICE = 599;
 const PREMIUM_CURRENCY = "INR";
 
-/**
- * Resolve the Stripe customer that belongs to the *authenticated* user.
- *
- * The customer id is derived server-side from req.user and never trusted from
- * the request body. Users created before Stripe was wired up (or via a path
- * that skipped customer creation) are backfilled lazily so a charge can still
- * proceed.
- */
 async function resolveStripeCustomer(userId) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
