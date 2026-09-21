@@ -1,8 +1,19 @@
 import { stripeClient } from "../config/stripe.js";
 import { prisma } from "../config/prisma.js";
 
-const PREMIUM_PRICE = 599;
+const PREMIUM_PRICE = 699;
 const PREMIUM_CURRENCY = "INR";
+
+export const getPrice = (req, res) => {
+  res.status(200).send({
+    success: true,
+    message: "Premium price",
+    data: {
+      amount: PREMIUM_PRICE,
+      currency: PREMIUM_CURRENCY,
+    },
+  });
+};
 
 async function resolveStripeCustomer(userId) {
   const user = await prisma.user.findUnique({ where: { id: userId } });

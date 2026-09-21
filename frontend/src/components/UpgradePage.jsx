@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getStripe, isStripeConfigured } from "../lib/stripe";
 import { paymentApi } from "../api/payment.api";
 import { theme } from "../theme";
+import { Crown } from "lucide-react";
 
 const FONT_HREF =
   "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&display=swap";
@@ -29,6 +30,19 @@ const REST_STYLE = {
   invalid: { color: "#b91c1c", iconColor: "#b91c1c" },
 };
 
+/* CVC element with fully masked display — dots only */
+const CVC_STYLE = {
+  base: {
+    ...ELEMENT_BASE,
+    fontFamily: "'Roboto Mono', ui-monospace, monospace",
+    letterSpacing: "0.35em",
+    color: "transparent", // hide real chars
+    textShadow: "0 0 0 #1c1917", // draw dots via text-shadow trick not reliable
+    caretColor: "#1c1917",
+  },
+  invalid: { color: "transparent", iconColor: "#b91c1c" },
+};
+
 const schemeKeyFromBrand = (brand) =>
   ["visa", "mastercard", "amex", "discover"].includes(brand) ? brand : "";
 
@@ -40,11 +54,53 @@ const brandLabel = (brand) =>
     discover: "Discover",
   })[brand] || "Card";
 
+const CURRENCY_SYMBOL = { INR: "₹", USD: "$", EUR: "€" };
+
+const formatPriceInt = (amount, currency) => {
+  if (amount == null) return "";
+  return `${CURRENCY_SYMBOL[currency] || "₹"}${amount}`;
+};
+
+const formatPriceFull = (amount, currency) => {
+  const int = formatPriceInt(amount, currency);
+  return int ? `${int}.00` : "";
+};
+
 const groupsFor = (schemeKey) =>
   schemeKey === "amex" ? [4, 6, 5] : [4, 4, 4, 4];
 
 const nameFace = (value) =>
   value.trim() ? value.trim().toUpperCase() : "YOUR NAME";
+
+/* ─── card number rendering helpers ─── */
+
+/** Extract digits from Stripe element event value (which is formatted, e.g. "4242 4242"). */
+const digitsOf = (value) => String(value || "").replace(/\D/g, "");
+
+const buildNumberGroups = (digits, schemeKey) => {
+  const groupSizes = groupsFor(schemeKey);
+  let cursor = 0;
+  return groupSizes.map((size) => {
+    const group = [];
+    for (let i = 0; i < size; i += 1) {
+      const ch = digits[cursor];
+      group.push({ ch: ch || null, filled: Boolean(ch) });
+      cursor += 1;
+    }
+    return group;
+  });
+};
+
+/* Format expiry for card face — value from Stripe is like "12 / 34" or "12/34" */
+const formatExpiryForCard = (value) => {
+  const raw = String(value || "");
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.length === 1) return `${digits}•/••`;
+  const mm = digits.slice(0, 2);
+  const yy = digits.slice(2, 4);
+  return `${mm}/${(yy || "••").padEnd(2, "•")}`;
+};
 
 const ErrIcon = () => (
   <svg
@@ -97,35 +153,47 @@ function AlreadyPro({ onBack }) {
       <div className="relative z-10 min-h-full flex flex-col items-center justify-center gap-6 p-5 sm:p-10">
         <section
           className="w-full max-w-md overflow-hidden"
-          style={{ ...theme.panel, borderRadius: "20px" }}
+          style={{
+            ...theme.panel,
+            borderRadius: "20px",
+            boxShadow:
+              "0 24px 60px -24px rgba(15,23,42,0.22), 0 6px 18px -8px rgba(15,23,42,0.12)",
+          }}
         >
-          <div className="flex flex-col items-center gap-2.5 p-8 sm:p-10 text-center">
+          <div className="flex flex-col items-center gap-3 p-8 sm:p-12 text-center">
             <span
-              className="inline-grid place-items-center px-3.5 py-1.5 mb-1.5 rounded-full text-[0.68rem] font-extrabold tracking-[0.18em] text-white"
+              className="inline-grid place-items-center px-4 py-1.5 mb-2 rounded-full text-[0.68rem] font-extrabold tracking-[0.22em] text-white"
               style={{
                 ...theme.primary,
-                boxShadow: "0 8px 20px -8px rgba(59,130,246,0.45)",
+                boxShadow:
+                  "0 10px 24px -8px rgba(59,130,246,0.5), inset 0 1px 0 rgba(255,255,255,0.3)",
               }}
             >
-              PRO
+              <Crown /> PRO
             </span>
-            <h2 className="m-0 text-2xl font-extrabold tracking-tight text-stone-800">
+            <h2 className="m-0 text-[1.65rem] sm:text-3xl font-extrabold tracking-tight text-stone-800">
               You&apos;re on Pro
             </h2>
-            <p className="m-0 mb-2 text-sm text-stone-500">
+            <p className="m-0 mb-3 max-w-[19rem] text-[0.9rem] leading-relaxed text-stone-500">
               You already have access to all Premium features.
             </p>
             <button
               type="button"
               onClick={onBack}
-              className="mt-2 w-full max-w-[220px] h-12 rounded-[14px] font-bold text-white transition hover:-translate-y-0.5"
+              className="group relative mt-1 w-full max-w-[240px] h-12 rounded-[14px] font-bold text-white transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
               style={{
                 ...theme.primary,
                 boxShadow:
                   "0 8px 28px rgba(59,130,246,0.32), inset 0 1px 0 rgba(255,255,255,0.25)",
               }}
             >
-              Back to app
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 overflow-hidden rounded-[14px]"
+              >
+                <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+              </span>
+              <span className="relative cursor-pointer">Back to app</span>
             </button>
           </div>
         </section>
@@ -178,6 +246,10 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
   });
   const [phase, setPhase] = useState("idle");
   const [verdict, setVerdict] = useState({ say: "", sub: "" });
+  const [expiryDisplay, setExpiryDisplay] = useState(""); // raw expiry string from Stripe
+  const [numberDigits, setNumberDigits] = useState(""); // raw digits from Stripe
+  const [cvcDigits, setCvcDigits] = useState(""); // raw digits length for CVC dots
+  const [price, setPrice] = useState({ amount: null, currency: "INR" });
 
   const stripeRef = useRef(null);
   const numElRef = useRef(null);
@@ -199,14 +271,23 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
   const mountedRef = useRef(true);
   const chargedRef = useRef(null);
   const doneRef = useRef(false);
-  const successTimerRef = useRef(null);
 
   const schemeKey = schemeKeyFromBrand(brand);
+  const priceFull = formatPriceFull(price.amount, price.currency);
+  const priceInt = formatPriceInt(price.amount, price.currency);
   const flipped = cvcFocused && schemeKey !== "amex";
   const processing = phase === "authorising";
   const payDisabled = Boolean(loadError) || !ready || processing;
   const isActive = phase !== "idle";
 
+  // ── derived card-face values ──
+  const numberGroups = buildNumberGroups(numberDigits, schemeKey);
+  const expiryFace = expiryDisplay
+    ? formatExpiryForCard(expiryDisplay)
+    : "••/••";
+  const cvcFace = cvcDigits ? "•".repeat(cvcDigits.length) : "•••";
+
+  /* ── flight layout (unchanged) ── */
   const layFlight = useCallback(() => {
     const slot = slotRef.current;
     const cardEl = cardRef.current;
@@ -262,10 +343,6 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
   const finishSuccess = useCallback(() => {
     if (doneRef.current) return;
     doneRef.current = true;
-    if (successTimerRef.current) {
-      clearTimeout(successTimerRef.current);
-      successTimerRef.current = null;
-    }
     onSuccess?.(chargedRef.current);
   }, [onSuccess]);
 
@@ -273,9 +350,27 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      if (successTimerRef.current) clearTimeout(successTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (alreadyPro) return undefined;
+    let live = true;
+    paymentApi
+      .getPrice()
+      .then((res) => {
+        if (live && Number.isFinite(Number(res?.data?.amount))) {
+          setPrice({
+            amount: Number(res.data.amount),
+            currency: res.data.currency || "INR",
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [alreadyPro]);
 
   useEffect(() => {
     if (document.getElementById("sable-fonts")) return;
@@ -286,6 +381,7 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
     document.head.appendChild(link);
   }, []);
 
+  /* ── Stripe element setup ── */
   useEffect(() => {
     if (alreadyPro) return undefined;
     if (!isStripeConfigured) {
@@ -317,7 +413,7 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
       expiryEl = elements.create("cardExpiry", { style: REST_STYLE });
       cvcEl = elements.create("cardCvc", {
         placeholder: "CVC",
-        style: REST_STYLE,
+        style: CVC_STYLE, // ◀ transparent so we can mask with dots
       });
       if (cancelled) return;
 
@@ -334,16 +430,34 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
         setBrand(e.brand && e.brand !== "unknown" ? e.brand : "");
         setComplete((c) => ({ ...c, number: e.complete }));
         setErrors((er) => ({ ...er, number: e.error?.message || "" }));
+        // capture typed digits from the element's `value` (formatted string)
+        const digits = digitsOf(e.value || (e.complete && e.value));
+        if (e.value) setNumberDigits(digitsOf(e.value));
+        else setNumberDigits("");
       });
       expiryEl.on("change", (e) => {
         if (cancelled) return;
         setComplete((c) => ({ ...c, expiry: e.complete }));
         setErrors((er) => ({ ...er, expiry: e.error?.message || "" }));
+        // store raw expiry for card face
+        const value = e.value;
+        const raw =
+          typeof value === "string"
+            ? value
+            : value?.expiry ||
+              value?.formatted ||
+              (value?.month && value?.year
+                ? `${value.month}/${value.year}`
+                : "");
+        setExpiryDisplay(raw || "");
       });
       cvcEl.on("change", (e) => {
         if (cancelled) return;
         setComplete((c) => ({ ...c, cvc: e.complete }));
         setErrors((er) => ({ ...er, cvc: e.error?.message || "" }));
+        // count digits for masking
+        const raw = String(e.value || "").replace(/\D/g, "");
+        setCvcDigits(raw);
       });
       cvcEl.on("focus", () => !cancelled && setCvcFocused(true));
       cvcEl.on("blur", () => !cancelled && setCvcFocused(false));
@@ -360,6 +474,7 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
     };
   }, [alreadyPro]);
 
+  /* ── resize / scroll re-layout ── */
   useEffect(() => {
     if (alreadyPro) return undefined;
     const onResize = () => phaseRef.current !== "idle" && layFlight();
@@ -371,6 +486,7 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
     };
   }, [alreadyPro, layFlight]);
 
+  /* ── tilt effect ── */
   useEffect(() => {
     if (alreadyPro) return undefined;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
@@ -469,9 +585,12 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
   }, [phase]);
 
   const resetToIdle = () => {
+    phaseRef.current = "idle";
     setPhase("idle");
     land();
     setVerdict({ say: "", sub: "" });
+    setErrors({ name: "", number: "", expiry: "", cvc: "" });
+    setCvcFocused(false);
     requestAnimationFrame(() => numElRef.current?.focus?.());
   };
 
@@ -499,7 +618,7 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
     setCvcFocused(false);
     setVerdict({
       say: "Authorising with your bank",
-      sub: `${label} · ₹599.00`,
+      sub: `${label} · ${priceFull}`,
     });
     phaseRef.current = "authorising";
     setPhase("authorising");
@@ -535,7 +654,7 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
       const last4 =
         charged?.data?.payment_method?.last4 || token.card?.last4 || "";
       setVerdict({
-        say: "Paid ₹599.00",
+        say: `Paid ${priceFull}`,
         sub: last4
           ? `${label} •••• ${last4} · receipt on its way`
           : "Receipt on its way to you",
@@ -543,16 +662,21 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
       setPhase("approved");
 
       doneRef.current = false;
-      successTimerRef.current = setTimeout(
-        finishSuccess,
-        minDwell === 350 ? 400 : 1600,
-      );
     } catch (err) {
       await settle();
       if (!mountedRef.current) return;
+      const declined =
+        err.status === 400 ||
+        /declined|insufficient funds|card was declined/i.test(
+          String(err?.message || ""),
+        );
       setVerdict({
-        say: "Your bank declined this card",
-        sub: err.message || "No money has moved. Try another card.",
+        say: declined ? "Your bank declined this card" : "Payment failed",
+        sub:
+          err?.message ||
+          (declined
+            ? "No money has moved. Try another card."
+            : "No money has moved. Try again."),
       });
       setPhase("declined");
     }
@@ -817,15 +941,20 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
                           </span>
                         </div>
 
+                        {/* ── CARD NUMBER (live from typed digits) ── */}
                         <p className="relative z-[1] my-auto flex gap-[clamp(9px,3.4%,16px)] font-mono font-semibold text-[clamp(.95rem,2.5vw,1.16rem)] tracking-wider text-stone-800">
-                          {groupsFor(schemeKey).map((n, gi) => (
+                          {numberGroups.map((group, gi) => (
                             <span key={gi} className="flex">
-                              {Array.from({ length: n }).map((_, ci) => (
+                              {group.map((cell, ci) => (
                                 <span
                                   key={ci}
-                                  className="inline-block min-w-[0.62em] text-center text-stone-400"
+                                  className={`inline-block min-w-[0.62em] text-center ${
+                                    cell.filled
+                                      ? "text-stone-800"
+                                      : "text-stone-400"
+                                  }`}
                                 >
-                                  •
+                                  {cell.filled ? cell.ch : "•"}
                                 </span>
                               ))}
                             </span>
@@ -845,8 +974,14 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
                             <span className="text-[0.5rem] font-semibold tracking-[0.16em] uppercase text-stone-500">
                               Expires
                             </span>
-                            <span className="font-mono text-[clamp(.6rem,1.6vw,.74rem)] font-medium tracking-wider uppercase text-stone-800">
-                              ••/••
+                            <span
+                              className={`font-mono text-[clamp(.6rem,1.6vw,.74rem)] font-medium tracking-wider uppercase transition-colors duration-200 ${
+                                expiryDisplay
+                                  ? "text-stone-800"
+                                  : "text-stone-400"
+                              }`}
+                            >
+                              {expiryFace}
                             </span>
                           </span>
                           <SchemeMark
@@ -856,7 +991,7 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
                         </div>
                       </div>
 
-                      {/* BACK */}
+                      {/* BACK — CVC face */}
                       <div
                         className="absolute inset-0 rounded-[20px] overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)] pt-[11%] shadow-[0_1px_0_rgba(255,255,255,.95)_inset,0_0_0_1px_rgba(0,0,0,.06)_inset,0_20px_40px_-18px_rgba(0,0,0,.18)]"
                         style={{
@@ -875,7 +1010,8 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
                             }}
                           />
                           <span className="shrink-0 min-w-[58px] h-[26px] px-2.5 grid place-items-center rounded-r-[3px] bg-white text-stone-800 font-mono font-semibold text-[0.78rem] tracking-widest shadow-[inset_0_0_0_1px_rgba(0,0,0,.12)]">
-                            {schemeKey === "amex" ? "••••" : "•••"}
+                            {/* Live CVC dots on the card back */}
+                            {schemeKey === "amex" ? cvcFace : cvcFace}
                           </span>
                         </div>
                         <p className="mt-[7%] mx-[6%] mr-[22%] text-[0.42rem] leading-relaxed text-stone-500">
@@ -913,7 +1049,7 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
                       Premium Plan
                     </span>
                     <span className="text-[0.95rem] font-semibold tabular-nums text-stone-800">
-                      ₹599.00
+                      {priceFull || "…"}
                     </span>
                   </li>
                 </ul>
@@ -939,26 +1075,33 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
                   style={{ borderTop: "1px solid rgba(0,0,0,0.06)" }}
                 >
                   <span>Total due today</span>
-                  <b className="text-[1.15rem] font-extrabold tracking-tight text-stone-800 tabular-nums">
-                    ₹599
-                    <span className="text-[0.76rem] font-bold text-stone-500">
-                      .00
-                    </span>
-                  </b>
+                  {price.amount != null ? (
+                    <b className="text-[1.15rem] font-extrabold tracking-tight text-stone-800 tabular-nums">
+                      {priceInt}
+                      <span className="text-[0.76rem] font-bold text-stone-500">
+                        .00
+                      </span>
+                    </b>
+                  ) : (
+                    <b className="text-[1.15rem] font-extrabold tracking-tight text-stone-800">
+                      …
+                    </b>
+                  )}
                 </p>
               </div>
 
               {/* verdict */}
               <div
                 ref={resultRef}
-                className={`absolute left-0 right-0 top-1/2 z-[5] flex flex-col items-center gap-2 px-4 pt-11 text-center pointer-events-none transition-opacity duration-300 ${
-                  isActive ? "opacity-100 pointer-events-auto" : "opacity-0"
+                className={`absolute left-0 right-0 top-1/2 z-[6] flex flex-col items-center gap-2 px-4 pt-11 text-center transition-opacity duration-300 ${
+                  isActive
+                    ? "opacity-100 pointer-events-auto"
+                    : "opacity-0 pointer-events-none"
                 }`}
                 style={{
                   transform:
                     "translate(var(--result-x,0px), var(--verdict-y,150px))",
                 }}
-                inert={phase === "idle" ? "" : undefined}
               >
                 <span
                   className={`absolute top-1.5 left-0 right-0 mx-auto w-[26px] h-[26px] rounded-full border-2 border-stone-300/50 border-t-blue-500 ${
@@ -1017,8 +1160,10 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
                   <button
                     ref={againBtnRef}
                     type="button"
-                    onClick={phase === "approved" ? finishSuccess : resetToIdle}
-                    className="mt-1 font-semibold text-[0.76rem] text-stone-800 rounded-full px-4 py-2 transition hover:border-blue-400 hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2"
+                    onClick={() =>
+                      phase === "approved" ? finishSuccess() : resetToIdle()
+                    }
+                    className="relative z-[1] mt-1 font-semibold text-[0.76rem] text-stone-800 rounded-full px-4 py-2 transition hover:border-blue-400 hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2"
                     style={{
                       ...theme.button,
                       borderRadius: "999px",
@@ -1210,7 +1355,22 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
                         <rect x="4" y="8.6" width="12" height="8" rx="2" />
                         <path d="M7.2 8.6V6.4a2.8 2.8 0 0 1 5.6 0v2.2" />
                       </FieldIcon>
-                      <div className="flex-1 min-w-0" ref={cvcMountRef} />
+                      {/* wrapper that overlays dots over the Stripe iframe */}
+                      <div className="relative flex-1 min-w-0">
+                        <div
+                          ref={cvcMountRef}
+                          className="[&_iframe]:!text-transparent"
+                        />
+                        {/* mask dots overlay — visible only when there is a value */}
+                        {cvcDigits.length > 0 && (
+                          <span
+                            aria-hidden
+                            className="pointer-events-none absolute inset-0 flex items-center font-mono text-[0.92rem] font-semibold text-stone-800 tracking-[0.35em] select-none"
+                          >
+                            {"•".repeat(cvcDigits.length)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <p
                       className={`flex items-center gap-1.5 m-0 min-h-8 py-1.5 text-[0.72rem] font-medium text-red-600 transition ${
@@ -1244,7 +1404,9 @@ const UpgradePage = ({ onBack, onSuccess, user }) => {
                     <rect x="3.2" y="7" width="9.6" height="7" rx="1.9" />
                     <path d="M5.7 7V5.2a2.3 2.3 0 0 1 4.6 0V7" />
                   </svg>
-                  <span>{processing ? "Authorising…" : "Pay ₹599.00"}</span>
+                  <span>
+                    {processing ? "Authorising…" : `Pay ${priceFull || ""}`}
+                  </span>
                   <svg
                     className="w-[17px] h-[17px] fill-none stroke-current stroke-[1.7]"
                     viewBox="0 0 20 20"

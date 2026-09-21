@@ -1,8 +1,10 @@
 import express from "express";
-import { addNewCard, createCharges} from "../controllers/paymentController.js"
+import { getPrice, addNewCard, createCharges } from "../controllers/paymentController.js"
 import { requireAuth } from "../middleware/requireAuth.js";
 
 const router = express.Router();
+
+router.get("/price", getPrice);
 
 router.post(
   "/add-card",

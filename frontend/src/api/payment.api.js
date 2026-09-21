@@ -8,6 +8,7 @@ const json = (body) => ({
 });
 
 export const paymentApi = {
+  getPrice: () => apiRequest(baseUrl, "/api/payment/price", { method: "GET" }),
   addCard: (body) => apiRequest(baseUrl, "/api/payment/add-card", json(body)),
   createCharge: (body) =>
     apiRequest(baseUrl, "/api/payment/create-charges", json(body)),

@@ -45,30 +45,59 @@ export async function chatWithGroq(query, documentId, chatId, history = []) {
     .map((result) => result.metadata?.text || result.doc || "")
     .join("\n\n");
 
-  const messages = [
-    {
-      role: "system",
-      content: `You are a helpful assistant. Answer ONLY from the provided PDF context.
+const messages = [
+  {
+    role: "system",
+    content: `You are a helpful, accurate assistant that answers questions ONLY using the provided PDF context.
 
 RULES:
-- Give a **simple, concise answer**, preferably in one line.
-- **Bold important facts/names/numbers**.
-- Use *italics only for brief parenthetical details*.
-- No headings.
-- No bullet points unless needed for multiple distinct facts.
-- No tables.
-- No code blocks.
-- Do not mention "according to the context".
-- Do not add information that is not in the PDF.
-- If the answer is not found in the PDF, reply exactly:
-  "The PDF you shared has no instances of {query}."`,
-    },
-    ...history,
-    {
-      role: "user",
-      content: `Context:\n${context}\n\nQuestion: ${query}`,
-    },
-  ];
+
+1. ANSWERING
+- Give a clear, natural, concise answer.
+- Answer directly without unnecessary explanation.
+- Use only information present in the PDF context.
+- Never invent, assume, or use outside knowledge.
+- If the answer cannot be found in the PDF, say:
+  "The PDF you shared has no instances of {query}."
+
+2. FORMATTING
+- **Bold** important names, facts, numbers, dates, and key terms when useful.
+- Use *italics* only for short parenthetical information.
+- Do not use headings unless they genuinely improve clarity.
+- Do not use tables or code blocks unless specifically requested.
+- Keep answers clean and easy to read.
+
+3. MULTIPLE QUESTIONS
+- If the user asks multiple questions, answer every question separately.
+- Preserve the exact question order.
+- Put EVERY answer on a separate line.
+- Use exactly this format:
+  1. Answer to question 1
+  2. Answer to question 2
+  3. Answer to question 3
+- NEVER put multiple numbered answers on the same line.
+- If there is only one question, do not add numbering.
+
+4. CONVERSATION
+- Use previous conversation messages when they contain relevant information.
+- Do not repeat information unnecessarily.
+- If the user's question is ambiguous, answer using the most relevant information available in the PDF.
+- Never mention "according to the context", "the context says", or internal retrieval details.
+
+5. ACCURACY
+- Prefer a short accurate answer over a long explanation.
+- If the PDF contains conflicting information, mention the conflict briefly instead of choosing one without evidence.`,
+  },
+  ...history,
+  {
+    role: "user",
+    content: `PDF Context:
+${context}
+
+Question:
+${query}`,
+  },
+];
 
   const answer = await callGroq(messages);
 

@@ -13,7 +13,8 @@
     "start:status_worker": "node src/user-server/workers/statusWorker.js",
     "start:message_worker": "node src/user-server/workers/messageWorker.js",
     "start:chat": "node src/chat-server/server.js",
-    "start:user": "node src/user-server/server.js"
+    "start:user": "node src/user-server/server.js",
+    "servers": "npm-run-all --parallel dev:doc_worker dev:chat dev:user dev:status_worker dev:message_worker"
   },
   "dependencies": {
     "@google/genai": "^2.17.1",

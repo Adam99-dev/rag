@@ -358,7 +358,13 @@ const App = () => {
       ...current,
       [documentId]: [
         ...(current[documentId] || []),
-        { id: Date.now(), role: "user", content, citations: [] },
+        {
+          id: Date.now(),
+          role: "user",
+          content,
+          citations: [],
+          createdAt: new Date().toISOString(),
+        },
       ],
     }));
     setMsg("");
@@ -379,6 +385,7 @@ const App = () => {
             role: "ai",
             content: data.answer || "",
             citations: toCitations(data.sources),
+            createdAt: new Date().toISOString(),
           },
         ],
       }));

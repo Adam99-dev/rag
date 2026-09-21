@@ -21,6 +21,7 @@ const Sidebar = ({
   setDocToDelete,
   handleDeleteDoc,
   user,
+  profileLoading,
   profileMenuOpen,
   setProfileMenuOpen,
   logout,
@@ -57,6 +58,7 @@ const Sidebar = ({
       />
       <ProfileFooter
         user={user}
+        profileLoading={profileLoading}
         profileMenuOpen={profileMenuOpen}
         setProfileMenuOpen={setProfileMenuOpen}
         logout={logout}
